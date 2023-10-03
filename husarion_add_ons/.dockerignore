@@ -1,0 +1,11 @@
+../*.log
+../*.tsbuildinfo
+../.DS_Store
+../.webpack/
+../dist/
+../node_modules/
+Dockerfile
+compose.yaml
+# default-url.txt
+# FoxgloveDefaultLayout.json
+# Caddyfile

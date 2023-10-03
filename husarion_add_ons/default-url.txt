@@ -1,0 +1,1 @@
+ws://{{.Host}}:{{env "ROSBRIDGE_PORT"}}

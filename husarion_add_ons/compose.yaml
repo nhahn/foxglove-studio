@@ -1,0 +1,21 @@
+services:
+  foxglove:
+    build:
+      context: ..
+      dockerfile: ./husarion_add_ons/Dockerfile
+    # network_mode: host
+    # environment:
+    #   - FOXGLOVE_PORT=8080
+    #   - ROSBRIDGE_PORT=9090
+    volumes:
+      - ./FoxgloveDefaultLayout.json:/foxglove/default-layout.json
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    ports:
+      - 8080:8080
+
+  rosbridge:
+    image: husarion/rosbridge-server:humble
+    # network_mode: host
+    ports:
+      - 9090:9090
+    command: ros2 launch rosbridge_server rosbridge_websocket_launch.xml
