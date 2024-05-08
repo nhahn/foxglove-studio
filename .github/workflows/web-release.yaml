@@ -2,7 +2,8 @@ name: Build website
 
 on:
   push:
-    branches: [main, release/*]
+    tags:
+      - "v*.*.*"
   pull_request:
 
 jobs:
@@ -35,8 +36,10 @@ jobs:
         run: tar -czf web-build.tar.gz -C web/.webpack .
 
       - name: create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: web-build.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# git tag -a v1.0.0 -m "Release version 1.0.0"
+# git push origin v1.0.0
