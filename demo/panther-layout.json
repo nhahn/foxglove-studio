@@ -1,0 +1,181 @@
+{
+  "configById": {
+    "DiagnosticSummary!47zasr6": {
+      "minLevel": 0,
+      "pinnedIds": [],
+      "hardwareIdFilter": "",
+      "topicToRender": "{{env "ROBOT_NAMESPACE"}}/diagnostics",
+      "sortByLevel": true
+    },
+    "Plot!dg5ynj": {
+      "paths": [
+        {
+          "timestampMethod": "receiveTime",
+          "value": "{{env "ROBOT_NAMESPACE"}}/imu/data.linear_acceleration.x",
+          "enabled": true,
+          "label": "x",
+          "showLine": true
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "{{env "ROBOT_NAMESPACE"}}/imu/data.linear_acceleration.y",
+          "enabled": true,
+          "label": "y"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "{{env "ROBOT_NAMESPACE"}}/imu/data.linear_acceleration.z",
+          "enabled": true,
+          "label": "z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 0,
+      "foxglovePanelTitle": "Acceleration",
+      "followingViewWidth": 60
+    },
+    "Bar!3t52ye7": {
+      "path": "{{env "ROBOT_NAMESPACE"}}/joint_states.effort[0]",
+      "maxValue": 34.52,
+      "colorMode": "colormap",
+      "gradient": ["#0000ff", "#ff00ff"],
+      "reverse": false,
+      "foxglovePanelTitle": "FL"
+    },
+    "Bar!461hl59": {
+      "path": "{{env "ROBOT_NAMESPACE"}}/joint_states.effort[1]",
+      "maxValue": 34.52,
+      "colorMode": "colormap",
+      "gradient": ["#0000ff", "#ff00ff"],
+      "reverse": true,
+      "foxglovePanelTitle": "FR"
+    },
+    "Bar!1fzrnqw": {
+      "path": "{{env "ROBOT_NAMESPACE"}}/joint_states.effort[2]",
+      "maxValue": 34.52,
+      "colorMode": "colormap",
+      "gradient": ["#0000ff", "#ff00ff"],
+      "reverse": false,
+      "foxglovePanelTitle": "RL"
+    },
+    "Bar!1q5qffy": {
+      "path": "{{env "ROBOT_NAMESPACE"}}/joint_states.effort[3]",
+      "maxValue": 34.52,
+      "colorMode": "colormap",
+      "gradient": ["#0000ff", "#ff00ff"],
+      "reverse": true,
+      "foxglovePanelTitle": "RR"
+    },
+    "Battery!wppv5y": {
+      "path": "{{env "ROBOT_NAMESPACE"}}/battery/battery_status.percentage",
+      "minValue": 0,
+      "maxValue": 1,
+      "colorMap": "red-yellow-green",
+      "colorMode": "colormap",
+      "gradient": ["#0000ff", "#ff00ff"],
+      "reverse": false,
+      "foxglovePanelTitle": "Battery"
+    },
+    "EStop!1ejvisy": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "advancedView": false,
+      "serviceName": "",
+      "goServiceName": "{{env "ROBOT_NAMESPACE"}}/hardware/e_stop_reset",
+      "stopServiceName": "{{env "ROBOT_NAMESPACE"}}/hardware/e_stop_trigger",
+      "statusTopicName": "{{env "ROBOT_NAMESPACE"}}/hardware/e_stop.data",
+      "foxglovePanelTitle": "E-stop"
+    },
+    "Joy!3fmstz6": {
+      "topic": "{{env "ROBOT_NAMESPACE"}}/cmd_vel",
+      "publishRate": 5,
+      "upButton": {
+        "field": "linear-x",
+        "value": 1
+      },
+      "downButton": {
+        "field": "linear-x",
+        "value": -1
+      },
+      "leftButton": {
+        "field": "angular-z",
+        "value": 1
+      },
+      "rightButton": {
+        "field": "angular-z",
+        "value": 0
+      },
+      "xValue": {
+        "field": "linear-x",
+        "value": 1
+      },
+      "yValue": {
+        "field": "angular-z",
+        "value": -1
+      },
+      "xAxis": {
+        "field": "linear-x",
+        "limit": 2
+      },
+      "yAxis": {
+        "field": "angular-z",
+        "limit": 3
+      }
+    },
+    "Tab!1plmth0": {
+      "activeTabIdx": 2,
+      "tabs": [
+        {
+          "title": "Diagnostic",
+          "layout": "DiagnosticSummary!47zasr6"
+        },
+        {
+          "title": "IMU",
+          "layout": "Plot!dg5ynj"
+        },
+        {
+          "title": "Motors",
+          "layout": {
+            "first": {
+              "first": "Bar!3t52ye7",
+              "second": "Bar!461hl59",
+              "direction": "row"
+            },
+            "second": {
+              "first": "Bar!1fzrnqw",
+              "second": "Bar!1q5qffy",
+              "direction": "row"
+            },
+            "direction": "column"
+          }
+        }
+      ]
+    }
+  },
+  "globalVariables": {
+    "": "\"\""
+  },
+  "userNodes": {},
+  "layout": {
+    "first": {
+      "first": "Battery!wppv5y",
+      "second": "EStop!1ejvisy",
+      "direction": "row",
+      "splitPercentage": 45.78378378378378
+    },
+    "second": {
+      "first": "Joy!3fmstz6",
+      "second": "Tab!1plmth0",
+      "direction": "column",
+      "splitPercentage": 57.41007194244605
+    },
+    "direction": "column",
+    "splitPercentage": 23.626373626373624
+  }
+}
