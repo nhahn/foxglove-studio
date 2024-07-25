@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import * as _ from "lodash-es";
+import { Opaque } from "ts-essentials";
 
 import {
   Immutable,
@@ -14,8 +15,7 @@ import { Topic as PlayerTopic } from "@foxglove/studio-base/players/types";
 import { ExtensionNamespace } from "@foxglove/studio-base/types/Extensions";
 
 // Branded string to ensure that users go through the `converterKey` function to compute a lookup key
-type Brand<K, T> = K & { __brand: T };
-type ConverterKey = Brand<string, "ConverterKey">;
+type ConverterKey = Opaque<string, "ConverterKey">;
 
 type MessageConverter = RegisterMessageConverterArgs<unknown> & {
   extensionNamespace?: ExtensionNamespace;
@@ -44,6 +44,10 @@ export function convertMessage(
   const matchedConverters = converters.get(key);
   for (const converter of matchedConverters ?? []) {
     const convertedMessage = converter.converter(messageEvent.message, messageEvent);
+    // If the converter returns _undefined_ or _null_ the message is skipped
+    if (convertedMessage == undefined) {
+      continue;
+    }
     convertedMessages.push({
       topic: messageEvent.topic,
       schemaName: converter.toSchemaName,

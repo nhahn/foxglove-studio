@@ -9,7 +9,6 @@ import MockMessagePipelineProvider from "@foxglove/studio-base/components/Messag
 import MultiProvider from "@foxglove/studio-base/components/MultiProvider";
 import StudioToastProvider from "@foxglove/studio-base/components/StudioToastProvider";
 import AppConfigurationContext from "@foxglove/studio-base/context/AppConfigurationContext";
-import { UserNodeStateProvider } from "@foxglove/studio-base/context/UserNodeStateContext";
 import MockCurrentLayoutProvider from "@foxglove/studio-base/providers/CurrentLayoutProvider/MockCurrentLayoutProvider";
 import TimelineInteractionStateProvider from "@foxglove/studio-base/providers/TimelineInteractionStateProvider";
 import WorkspaceContextProvider from "@foxglove/studio-base/providers/WorkspaceContextProvider";
@@ -26,7 +25,6 @@ function Wrapper({ children }: React.PropsWithChildren): JSX.Element {
     <AppConfigurationContext.Provider value={appConfiguration} />,
     <StudioToastProvider />,
     <TimelineInteractionStateProvider />,
-    <UserNodeStateProvider />,
     <MockMessagePipelineProvider />,
     <MockCurrentLayoutProvider />,
     <ThemeProvider isDark />,
@@ -72,6 +70,7 @@ describe("<AppBar />", () => {
           onUnmaximizeWindow={mockUnmaximize}
           onCloseWindow={mockClose}
           isMaximized
+          initialZoomFactor={1}
         />
       </Wrapper>,
     );

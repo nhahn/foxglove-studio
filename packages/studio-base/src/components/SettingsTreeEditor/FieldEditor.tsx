@@ -16,12 +16,14 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { makeStyles } from "tss-react/mui";
 import { v4 as uuid } from "uuid";
 
 import { Immutable, SettingsTreeAction, SettingsTreeField } from "@foxglove/studio";
 import MessagePathInput from "@foxglove/studio-base/components/MessagePathSyntax/MessagePathInput";
 import Stack from "@foxglove/studio-base/components/Stack";
+import { useAppContext } from "@foxglove/studio-base/context/AppContext";
 
 import { ColorGradientInput, ColorPickerInput, NumberInput, Vec2Input, Vec3Input } from "./inputs";
 
@@ -111,6 +113,7 @@ function FieldInput({
   path: readonly string[];
 }): JSX.Element {
   const { classes, cx } = useStyles();
+  const { t } = useTranslation("general");
 
   switch (field.input) {
     case "autocomplete":
@@ -242,8 +245,8 @@ function FieldInput({
             }
           }}
         >
-          <ToggleButton value={false}>Off</ToggleButton>
-          <ToggleButton value={true}>On</ToggleButton>
+          <ToggleButton value={false}>{t("off")}</ToggleButton>
+          <ToggleButton value={true}>{t("on")}</ToggleButton>
         </ToggleButtonGroup>
       );
     case "rgb":
@@ -497,6 +500,10 @@ function FieldEditorComponent({
   const paddingLeft = 0.75 + 2 * (indent - 1);
   const { classes, cx } = useStyles();
 
+  const { renderSettingsStatusButton } = useAppContext();
+
+  const statusButton = renderSettingsStatusButton ? renderSettingsStatusButton(field) : undefined;
+
   return (
     <>
       <Stack
@@ -507,6 +514,7 @@ function FieldEditorComponent({
         paddingLeft={paddingLeft}
         fullHeight
       >
+        {statusButton}
         {field.error && (
           <Tooltip
             arrow

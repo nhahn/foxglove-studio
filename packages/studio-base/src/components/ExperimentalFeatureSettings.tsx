@@ -45,16 +45,6 @@ function useFeatures(): Feature[] {
       name: t("newAppMenu"),
       description: <>{t("newAppMenuDescription")}</>,
     },
-    {
-      key: AppSetting.SHOW_DEBUG_PANELS,
-      name: t("studioDebugPanels"),
-      description: <>{t("studioDebugPanelsDescription")}</>,
-    },
-    {
-      key: AppSetting.ENABLE_MEMORY_USE_INDICATOR,
-      name: t("memoryUseIndicator"),
-      description: <>{t("memoryUseIndicatorDescription")}</>,
-    },
   ];
 
   if (process.env.NODE_ENV === "development") {

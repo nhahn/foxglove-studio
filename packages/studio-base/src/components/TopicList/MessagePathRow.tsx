@@ -7,8 +7,8 @@ import { Badge, Typography } from "@mui/material";
 import { FzfResultItem } from "fzf";
 import { useCallback, useMemo } from "react";
 
-import { DraggedMessagePath } from "@foxglove/studio";
 import { HighlightChars } from "@foxglove/studio-base/components/HighlightChars";
+import { DraggedMessagePath } from "@foxglove/studio-base/components/PanelExtensionAdapter";
 import Stack from "@foxglove/studio-base/components/Stack";
 import { useMessagePathDrag } from "@foxglove/studio-base/services/messagePathDragging";
 
@@ -42,8 +42,9 @@ export function MessagePathRow({
       rootSchemaName: topic.schemaName,
       isTopic: false,
       isLeaf,
+      topicName: topic.name,
     }),
-    [fullPath, isLeaf, topic.schemaName],
+    [fullPath, isLeaf, topic.name, topic.schemaName],
   );
 
   const { connectDragSource, connectDragPreview, cursor, isDragging, draggedItemCount } =

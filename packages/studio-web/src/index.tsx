@@ -26,6 +26,7 @@ function LogAfterRender(props: React.PropsWithChildren): JSX.Element {
 export type MainParams = {
   dataSources?: IDataSourceFactory[];
   extraProviders?: JSX.Element[];
+  rootElement?: JSX.Element;
 };
 
 export async function main(getParams: () => Promise<MainParams> = async () => ({})): Promise<void> {
@@ -66,24 +67,30 @@ export async function main(getParams: () => Promise<MainParams> = async () => ({
     return;
   }
 
-  const { installDevtoolsFormatters, overwriteFetch, waitForFonts, initI18n } = await import(
-    "@foxglove/studio-base"
-  );
+  // Use an async import to delay loading the majority of studio-base code until the CompatibilityBanner
+  // can be displayed.
+  const { installDevtoolsFormatters, overwriteFetch, waitForFonts, initI18n, StudioApp } =
+    await import("@foxglove/studio-base");
   installDevtoolsFormatters();
   overwriteFetch();
   // consider moving waitForFonts into App to display an app loading screen
   await waitForFonts();
   await initI18n();
 
-  const { Root } = await import("./Root");
+  const { WebRoot } = await import("./WebRoot");
   const params = await getParams();
+  const rootElement = params.rootElement ?? (
+    <WebRoot extraProviders={params.extraProviders} dataSources={params.dataSources}>
+      <StudioApp />
+    </WebRoot>
+  );
 
   // eslint-disable-next-line react/no-deprecated
   ReactDOM.render(
     <StrictMode>
       <LogAfterRender>
         {banner}
-        <Root extraProviders={params.extraProviders} dataSources={params.dataSources} />
+        {rootElement}
       </LogAfterRender>
     </StrictMode>,
     rootEl,

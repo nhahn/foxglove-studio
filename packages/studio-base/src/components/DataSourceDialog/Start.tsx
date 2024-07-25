@@ -13,10 +13,7 @@ import FoxgloveLogoText from "@foxglove/studio-base/components/FoxgloveLogoText"
 import Stack from "@foxglove/studio-base/components/Stack";
 import TextMiddleTruncate from "@foxglove/studio-base/components/TextMiddleTruncate";
 import { useAnalytics } from "@foxglove/studio-base/context/AnalyticsContext";
-import {
-  useCurrentUser,
-  useCurrentUserType,
-} from "@foxglove/studio-base/context/CurrentUserContext";
+import { useCurrentUser } from "@foxglove/studio-base/context/BaseUserContext";
 import { usePlayerSelection } from "@foxglove/studio-base/context/PlayerSelectionContext";
 import { useWorkspaceActions } from "@foxglove/studio-base/context/Workspace/useWorkspaceActions";
 import { AppEvent } from "@foxglove/studio-base/services/IAnalytics";
@@ -170,8 +167,7 @@ function SidebarItems(props: {
   onSelectView: (newValue: DataSourceDialogItem) => void;
 }): JSX.Element {
   const { onSelectView } = props;
-  const { signIn } = useCurrentUser();
-  const currentUserType = useCurrentUserType();
+  const { currentUserType, signIn } = useCurrentUser();
   const analytics = useAnalytics();
   const { classes } = useStyles();
   const { t } = useTranslation("openDialog");
@@ -198,7 +194,7 @@ function SidebarItems(props: {
             {t("exploreSampleData")}
           </Button>
           <Button
-            href="https://foxglove.dev/docs/studio/connection/data-sources"
+            href="https://docs.foxglove.dev/docs/connecting-to-data/introduction"
             target="_blank"
             className={classes.button}
             onClick={() => {
@@ -260,7 +256,7 @@ function SidebarItems(props: {
           actions: (
             <>
               <Button
-                href="https://foxglove.dev/docs/studio"
+                href="https://docs.foxglove.dev/docs"
                 target="_blank"
                 className={classes.button}
                 variant="outlined"
@@ -363,7 +359,7 @@ function SidebarItems(props: {
             actions: (
               <>
                 <Button
-                  href="https://console.foxglove.dev/recordings"
+                  href="https://app.foxglove.dev/~/recordings"
                   target="_blank"
                   variant="outlined"
                   className={classes.button}
@@ -377,7 +373,7 @@ function SidebarItems(props: {
                   {t("uploadToDataPlatform")}
                 </Button>
                 <Button
-                  href="https://foxglove.dev/docs/studio/layouts#team-layouts"
+                  href="https://docs.foxglove.dev/docs/visualization/layouts#team-layouts"
                   target="_blank"
                   className={classes.button}
                 >
@@ -458,7 +454,7 @@ export default function Start(): JSX.Element {
           </SvgIcon>
         ),
         iconProps: { iconName: "FileASPX" },
-        href: "https://console.foxglove.dev/recordings",
+        href: "https://app.foxglove.dev/~/recordings",
         onClick: () => {
           void analytics.logEvent(AppEvent.DIALOG_SELECT_VIEW, { type: "data-platform" });
         },

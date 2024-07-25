@@ -6,13 +6,16 @@ import { TFunction } from "i18next";
 import { PanelInfo } from "@foxglove/studio-base/context/PanelCatalogContext";
 import { TAB_PANEL_TYPE } from "@foxglove/studio-base/util/globalConstants";
 
+import barThumbnail from "./Bar/thumbnail.png";
+import batteryThumbnail from "./Battery/thumbnail.png";
 import dataSourceInfoThumbnail from "./DataSourceInfo/thumbnail.png";
+import eStopThumbnail from "./EStop/thumbnail.png";
 import gaugeThumbnail from "./Gauge/thumbnail.png";
 import imageThumbnail from "./Image/thumbnail.png";
 import indicatorThumbnail from "./Indicator/thumbnail.png";
+import joyThumbnail from "./Joy/thumbnail.png";
 import logThumbnail from "./Log/thumbnail.png";
 import mapThumbnail from "./Map/thumbnail.png";
-import nodePlaygroundThumbnail from "./NodePlayground/thumbnail.png";
 import parametersThumbnail from "./Parameters/thumbnail.png";
 import plotThumbnail from "./Plot/thumbnail.png";
 import publishThumbnail from "./Publish/thumbnail.png";
@@ -23,6 +26,7 @@ import tableThumbnail from "./Table/thumbnail.png";
 import teleopThumbnail from "./Teleop/thumbnail.png";
 import threeDeeRenderThumbnail from "./ThreeDeeRender/thumbnail.png";
 import topicGraphThumbnail from "./TopicGraph/thumbnail.png";
+import triggerButtonThumbnail from "./TriggerButton/thumbnail.png";
 import variableSliderThumbnail from "./VariableSlider/thumbnail.png";
 import diagnosticStatusThumbnail from "./diagnostics/thumbnails/diagnostic-status.png";
 import diagnosticSummaryThumbnail from "./diagnostics/thumbnails/diagnostic-summary.png";
@@ -66,11 +70,32 @@ export const getBuiltin: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
     module: async () => await import("./Indicator"),
   },
   {
+    title: t("bar"),
+    type: "Bar",
+    description: t("barDescription"),
+    thumbnail: barThumbnail,
+    module: async () => await import("./Bar"),
+  },
+  {
+    title: t("battery"),
+    type: "Battery",
+    description: t("batteryDescription"),
+    thumbnail: batteryThumbnail,
+    module: async () => await import("./Battery"),
+  },
+  {
     title: t("gauge"),
     type: "Gauge",
     description: t("gaugeDescription"),
     thumbnail: gaugeThumbnail,
     module: async () => await import("./Gauge"),
+  },
+  {
+    title: t("joy"),
+    type: "Joy",
+    description: t("joyDescription"),
+    thumbnail: joyThumbnail,
+    module: async () => await import("./Joy"),
   },
   {
     title: t("teleop"),
@@ -166,13 +191,6 @@ export const getBuiltin: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
     module: async () => await import("./VariableSlider"),
   },
   {
-    title: t("userScripts"),
-    type: "NodePlayground",
-    description: t("userScriptsDescription"),
-    thumbnail: nodePlaygroundThumbnail,
-    module: async () => await import("./NodePlayground"),
-  },
-  {
     title: t("tab"),
     type: TAB_PANEL_TYPE,
     description: t("tabDescription"),
@@ -180,13 +198,18 @@ export const getBuiltin: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
     module: async () => await import("./Tab"),
     hasCustomToolbar: true,
   },
-];
-
-export const getDebug: (t: TFunction<"panels">) => PanelInfo[] = (t) => [
   {
-    title: t("studioPlaybackPerformance"),
-    type: "PlaybackPerformance",
-    description: t("studioPlaybackPerformanceDescription"),
-    module: async () => await import("./PlaybackPerformance"),
+    title: t("triggerButton"),
+    type: "TriggerButton",
+    description: t("triggerButtonDescription"),
+    thumbnail: triggerButtonThumbnail,
+    module: async () => await import("./TriggerButton"),
+  },
+  {
+    title: t("eStop"),
+    type: "EStop",
+    description: t("eStopDescription"),
+    thumbnail: eStopThumbnail,
+    module: async () => await import("./EStop"),
   },
 ];

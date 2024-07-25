@@ -37,14 +37,13 @@ import type {
   IRenderer,
   ImageModeConfig,
   RendererConfig,
-  RendererEvents,
   RendererSubscription,
   TestOptions,
 } from "./IRenderer";
 import type { PickedRenderable } from "./Picker";
 import { SELECTED_ID_VARIABLE } from "./Renderable";
 import { Renderer } from "./Renderer";
-import { RendererContext, useRendererEvent } from "./RendererContext";
+import { RendererContext, useRendererEvent, useRendererProperty } from "./RendererContext";
 import { RendererOverlay } from "./RendererOverlay";
 import { CameraState, DEFAULT_CAMERA_STATE } from "./camera";
 import {
@@ -74,30 +73,6 @@ const PANEL_STYLE: React.CSSProperties = {
   position: "relative",
 };
 
-function useRendererProperty<K extends keyof IRenderer>(
-  renderer: IRenderer | undefined,
-  key: K,
-  event: keyof RendererEvents,
-  fallback: () => IRenderer[K],
-): IRenderer[K] {
-  const [value, setValue] = useState<IRenderer[K]>(() => renderer?.[key] ?? fallback());
-  useEffect(() => {
-    if (!renderer) {
-      return;
-    }
-    const onChange = () => {
-      setValue(() => renderer[key]);
-    };
-    onChange();
-
-    renderer.addListener(event, onChange);
-    return () => {
-      renderer.removeListener(event, onChange);
-    };
-  }, [renderer, event, key]);
-  return value;
-}
-
 /**
  * A panel that renders a 3D scene. This is a thin wrapper around a `Renderer` instance.
  */
@@ -109,7 +84,12 @@ export function ThreeDeeRender(props: {
   customSceneExtensions?: DeepPartial<SceneExtensionConfig>;
 }): JSX.Element {
   const { context, interfaceMode, testOptions, customSceneExtensions } = props;
-  const { initialState, saveState, unstable_fetchAsset: fetchAsset } = context;
+  const {
+    initialState,
+    saveState,
+    unstable_fetchAsset: fetchAsset,
+    unstable_setMessagePathDropConfig: setMessagePathDropConfig,
+  } = context;
   const analytics = useAnalytics();
 
   // Load and save the persisted panel configuration
@@ -199,7 +179,7 @@ export function ThreeDeeRender(props: {
   }, [renderer, analytics]);
 
   useEffect(() => {
-    context.EXPERIMENTAL_setMessagePathDropConfig(
+    setMessagePathDropConfig(
       renderer
         ? {
             getDropStatus: renderer.getDropStatus,
@@ -207,7 +187,7 @@ export function ThreeDeeRender(props: {
           }
         : undefined,
     );
-  }, [context, renderer]);
+  }, [setMessagePathDropConfig, renderer]);
 
   const [colorScheme, setColorScheme] = useState<"dark" | "light" | undefined>();
   const [timezone, setTimezone] = useState<string | undefined>();
@@ -226,17 +206,17 @@ export function ThreeDeeRender(props: {
   const renderRef = useRef({ needsRender: false });
   const [renderDone, setRenderDone] = useState<(() => void) | undefined>();
 
-  const schemaHandlers = useRendererProperty(
-    renderer,
-    "schemaHandlers",
-    "schemaHandlersChanged",
+  const schemaSubscriptions = useRendererProperty(
+    "schemaSubscriptions",
+    "schemaSubscriptionsChanged",
     () => new Map(),
+    renderer,
   );
-  const topicHandlers = useRendererProperty(
-    renderer,
-    "topicHandlers",
-    "topicHandlersChanged",
+  const topicSubscriptions = useRendererProperty(
+    "topicSubscriptions",
+    "topicSubscriptionsChanged",
     () => new Map(),
+    renderer,
   );
 
   // Config cameraState
@@ -318,14 +298,21 @@ export function ThreeDeeRender(props: {
   );
   useRendererEvent("selectedRenderable", updateSelectedRenderable, renderer);
 
+  const [focusedSettingsPath, setFocusedSettingsPath] = useState<undefined | readonly string[]>();
+
+  const onShowTopicSettings = useCallback((topic: string) => {
+    setFocusedSettingsPath(["topics", topic]);
+  }, []);
+
   // Rebuild the settings sidebar tree as needed
   useEffect(() => {
     context.updatePanelSettingsEditor({
       actionHandler,
       enableFilter: true,
+      focusedPath: focusedSettingsPath,
       nodes: settingsTree ?? {},
     });
-  }, [actionHandler, context, settingsTree]);
+  }, [actionHandler, context, focusedSettingsPath, settingsTree]);
 
   // Update the renderer's reference to `config` when it changes. Note that this does *not*
   // automatically update the settings tree.
@@ -402,11 +389,9 @@ export function ThreeDeeRender(props: {
         setParameters(renderState.parameters);
 
         // currentFrame has messages on subscribed topics since the last render call
-        deepParseMessageEvents(renderState.currentFrame);
         setCurrentFrameMessages(renderState.currentFrame);
 
         // allFrames has messages on preloaded topics across all frames (as they are loaded)
-        deepParseMessageEvents(renderState.allFrames);
         setAllFrames(renderState.allFrames);
       });
     };
@@ -458,14 +443,14 @@ export function ThreeDeeRender(props: {
     };
 
     for (const topic of topics) {
-      for (const rendererSubscription of topicHandlers.get(topic.name) ?? []) {
+      for (const rendererSubscription of topicSubscriptions.get(topic.name) ?? []) {
         addSubscription(topic, rendererSubscription);
       }
-      for (const rendererSubscription of schemaHandlers.get(topic.schemaName) ?? []) {
+      for (const rendererSubscription of schemaSubscriptions.get(topic.schemaName) ?? []) {
         addSubscription(topic, rendererSubscription);
       }
       for (const schemaName of topic.convertibleTo ?? []) {
-        for (const rendererSubscription of schemaHandlers.get(schemaName) ?? []) {
+        for (const rendererSubscription of schemaSubscriptions.get(schemaName) ?? []) {
           addSubscription(topic, rendererSubscription, schemaName);
         }
       }
@@ -481,8 +466,8 @@ export function ThreeDeeRender(props: {
     // shouldSubscribe values will be re-evaluated
     config.imageMode.calibrationTopic,
     config.imageMode.imageTopic,
-    schemaHandlers,
-    topicHandlers,
+    schemaSubscriptions,
+    topicSubscriptions,
     config.imageMode.annotations,
     // Need to update subscriptions when layers change as URDF layers might subscribe to topics
     // shouldSubscribe values will be re-evaluated
@@ -774,7 +759,7 @@ export function ThreeDeeRender(props: {
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      if (event.key === "3") {
+      if (event.key === "3" && !(event.metaKey || event.ctrlKey)) {
         onTogglePerspective();
         event.stopPropagation();
         event.preventDefault();
@@ -813,6 +798,7 @@ export function ThreeDeeRender(props: {
             canPublish={canPublish}
             publishActive={publishActive}
             onClickPublish={onClickPublish}
+            onShowTopicSettings={onShowTopicSettings}
             publishClickType={renderer?.publishClickTool.publishClickType ?? "point"}
             onChangePublishClickType={(type) => {
               renderer?.publishClickTool.setPublishClickType(type);
@@ -824,16 +810,4 @@ export function ThreeDeeRender(props: {
       </div>
     </ThemeProvider>
   );
-}
-
-function deepParseMessageEvents(messageEvents: ReadonlyArray<MessageEvent> | undefined): void {
-  if (!messageEvents) {
-    return;
-  }
-  for (const messageEvent of messageEvents) {
-    const maybeLazy = messageEvent.message as { toJSON?: () => unknown };
-    if ("toJSON" in maybeLazy) {
-      (messageEvent as { message: unknown }).message = maybeLazy.toJSON!();
-    }
-  }
 }

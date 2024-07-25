@@ -1,0 +1,187 @@
+@property --rotate {
+  syntax: "<angle>";
+  initial-value: 132deg;
+  inherits: false;
+}
+
+body {
+  /* https://coolors.co/f06449-ede6e3-7d82b8-36382e-613f75  */
+  --background-color: #ede6e3;
+  --joystick-color: #888;
+  --joystick-head-color: #f64;
+  --text-color: #210124;
+
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: inherit;
+  container-type: inline-size;
+}
+
+.joystick-panel {
+  flex-direction: column;
+  max-width: 800px;
+  text-align: center;
+  align-items: center;
+  padding: 20px 70px;
+}
+
+#joystick {
+  position: relative;
+  background-color: var(--joystick-color);
+  border-radius: 50%;
+  width: 270px;
+  height: 270px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 70px 100px 110px;
+}
+
+#joystick::before {
+  content: "";
+  width: 104%;
+  height: 104%;
+  border-radius: 50%;
+  background-image: linear-gradient(var(--rotate), #5dffdc, #3ce367 43%, #4ec200);
+  position: absolute;
+  z-index: -1;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    --rotate: 0deg;
+    transform: scale(1);
+  }
+  50% {
+    --rotate: 180deg;
+    transform: scale(1.02);
+  }
+  100% {
+    --rotate: 360deg;
+    transform: scale(1);
+  }
+}
+
+#joystick-head {
+  position: absolute;
+  background-color: var(--joystick-head-color);
+  border-radius: 50%;
+  width: 115px;
+  height: 115px;
+  cursor: grab;
+
+  animation: glow 0.6s alternate infinite;
+}
+
+@keyframes glow {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.15);
+  }
+}
+
+.joystick-arrow:nth-of-type(1) {
+  position: absolute;
+  bottom: 295px;
+
+  width: 0;
+  height: 0;
+  border-left: 35px solid transparent;
+  border-right: 35px solid transparent;
+
+  border-bottom: 35px solid var(--joystick-color);
+}
+
+.joystick-arrow:nth-of-type(2) {
+  position: absolute;
+  top: 295px;
+
+  width: 0;
+  height: 0;
+  border-left: 35px solid transparent;
+  border-right: 35px solid transparent;
+
+  border-top: 35px solid var(--joystick-color);
+}
+
+.joystick-arrow:nth-of-type(3) {
+  position: absolute;
+  left: 295px;
+
+  width: 0;
+  height: 0;
+  border-top: 35px solid transparent;
+  border-bottom: 35px solid transparent;
+
+  border-left: 35px solid var(--joystick-color);
+}
+
+.joystick-arrow:nth-of-type(4) {
+  position: absolute;
+  right: 295px;
+
+  width: 0;
+  height: 0;
+  border-top: 35px solid transparent;
+  border-bottom: 35px solid transparent;
+
+  border-right: 35px solid var(--joystick-color);
+}
+
+#joy-note {
+  position: absolute;
+  text-align: center;
+  font-size: 2em;
+  top: 350px;
+}
+
+.slider-panel {
+  flex-direction: column;
+  padding: 0px 20px;
+  justify-content: center;
+}
+
+.slider {
+  display: flex;
+  appearance: slider-vertical;
+  height: 225px;
+  position: relative;
+  margin: 0 auto;
+  width: 10px; /* Adjust this width if needed */
+}
+
+.slider::-webkit-slider-thumb {
+  width: 20px; /* Increase the size of the thumb if needed */
+  height: 20px;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  top: -10px; /* Adjust this value to increase the clickable area above the slider */
+  bottom: -10px; /* Adjust this value to increase the clickable area below the slider */
+  left: -20px; /* Adjust this value to increase the clickable area to the left of the slider */
+  right: -20px; /* Adjust this value to increase the clickable area to the right of the slider */
+}
+
+.slider:hover::before,
+.slider:focus::before {
+  cursor: pointer; /* Change the cursor to indicate interactivity */
+}
+
+.note {
+  display: flex;
+  justify-content: center;
+  font-size: 2em;
+  position: relative;
+  margin: 10px 0px;
+}

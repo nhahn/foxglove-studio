@@ -7,5 +7,9 @@ import { OverrideComponentReturn } from "../types";
 export const MuiTextField: OverrideComponentReturn<"MuiTextField"> = {
   defaultProps: {
     variant: "outlined",
+    color: "primary",
+    FormHelperTextProps: {
+      variant: "standard",
+    },
   },
 };
