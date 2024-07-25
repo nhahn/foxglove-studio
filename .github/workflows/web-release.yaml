@@ -2,8 +2,8 @@ name: Build website
 
 on:
   push:
-    branches: [main, release/*]
-  pull_request:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
