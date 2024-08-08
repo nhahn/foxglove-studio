@@ -6,7 +6,7 @@ import * as _ from "lodash-es";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { DeepPartial } from "ts-essentials";
 
-import { ros1 } from "@foxglove/rosmsg-msgs-common";
+import { ros2humble } from "@foxglove/rosmsg-msgs-common";
 import {
   PanelExtensionContext,
   SettingsTreeAction,
@@ -17,7 +17,7 @@ import {
 import EmptyState from "@foxglove/studio-base/components/EmptyState";
 import ThemeProvider from "@foxglove/studio-base/theme/ThemeProvider";
 
-import DirectionalPad from "./DirectionalPad";
+import JoyVisual from "./JoyVisual";
 
 type JoyProps = {
   context: PanelExtensionContext;
@@ -37,6 +37,7 @@ type Axis = { field: string; limit: number };
 type Config = {
   topic: undefined | string;
   publishRate: number;
+  stamped: boolean;
   xAxis: Axis;
   yAxis: Axis;
 };
@@ -51,6 +52,11 @@ function buildSettingsTree(config: Config, topics: readonly Topic[]): SettingsTr
         input: "autocomplete",
         value: config.topic,
         items: topics.map((t) => t.name),
+      },
+      stamped: {
+        label: "Stamped",
+        input: "boolean",
+        value: config.stamped,
       },
     },
     children: {
@@ -105,13 +111,14 @@ function Joy(props: JoyProps): JSX.Element {
   const [speed, setVelocity] = useState<{ x: number; y: number } | undefined>();
   const [topics, setTopics] = useState<readonly Topic[]>([]);
 
-  // resolve an initial config which may have some missing fields into a full config
+  // Resolve an initial config which may have some missing fields into a full config
   const [config, setConfig] = useState<Config>(() => {
     const partialConfig = context.initialState as DeepPartial<Config>;
 
     const {
       topic,
       publishRate = 5,
+      stamped = false,
       xAxis: { field: xAxisField = "linear-x", limit: xLimit = 1 } = {},
       yAxis: { field: yAxisField = "angular-z", limit: yLimit = 1 } = {},
     } = partialConfig;
@@ -119,6 +126,7 @@ function Joy(props: JoyProps): JSX.Element {
     return {
       topic,
       publishRate,
+      stamped,
       xAxis: { field: xAxisField, limit: xLimit },
       yAxis: { field: yAxisField, limit: yLimit },
     };
@@ -136,7 +144,7 @@ function Joy(props: JoyProps): JSX.Element {
     });
   }, []);
 
-  // setup context render handler and render done handling
+  // Setup context render handler and render done handling
   const [renderDone, setRenderDone] = useState<() => void>(() => () => { });
   const [colorScheme, setColorScheme] = useState<"dark" | "light">("light");
   useLayoutEffect(() => {
@@ -161,75 +169,91 @@ function Joy(props: JoyProps): JSX.Element {
     saveState(config);
   }, [config, context, saveState, settingsActionHandler, topics]);
 
-  // advertise topic
-  const { topic: currentTopic } = config;
+  // Advertise topic
+  const { topic: currentTopic, stamped } = config;
   useLayoutEffect(() => {
     if (!currentTopic) {
       return;
     }
 
-    context.advertise?.(currentTopic, "geometry_msgs/Twist", {
-      datatypes: new Map([
-        ["geometry_msgs/Vector3", ros1["geometry_msgs/Vector3"]],
-        ["geometry_msgs/Twist", ros1["geometry_msgs/Twist"]],
-      ]),
-    });
+    const messageType = stamped ? "geometry_msgs/TwistStamped" : "geometry_msgs/Twist";
+    const datatypesMap = stamped
+      ? new Map([
+        ["std_msgs/Header", ros2humble["std_msgs/Header"]],
+        ["geometry_msgs/Vector3", ros2humble["geometry_msgs/Vector3"]],
+        ["geometry_msgs/Twist", ros2humble["geometry_msgs/Twist"]],
+        ["geometry_msgs/TwistStamped", ros2humble["geometry_msgs/TwistStamped"]],
+      ])
+      : new Map([
+        ["geometry_msgs/Vector3", ros2humble["geometry_msgs/Vector3"]],
+        ["geometry_msgs/Twist", ros2humble["geometry_msgs/Twist"]],
+      ]);
+
+    context.advertise?.(currentTopic, messageType, { datatypes: datatypesMap });
 
     return () => {
       context.unadvertise?.(currentTopic);
     };
-  }, [context, currentTopic]);
+  }, [context, currentTopic, stamped]);
+
+  const getRosTimestamp = () => {
+    const now = Date.now();
+    return {
+      sec: Math.floor(now / 1000),
+      nanosec: (now % 1000) * 1e6,
+    };
+  };
+
+  const createMessage = () => {
+    if (config.stamped) {
+      return {
+        header: {
+          stamp: getRosTimestamp(),
+          frame_id: "base_link",
+        },
+        twist: {
+          linear: { x: 0, y: 0, z: 0 },
+          angular: { x: 0, y: 0, z: 0 },
+        },
+      };
+    } else {
+      return {
+        linear: { x: 0, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: 0 },
+      };
+    }
+  };
+
+  const setTwistValue = (message: any, axis: Axis, value: number) => {
+    const target = config.stamped ? message.twist : message;
+    const [category, direction] = axis.field.split("-");
+    if (category && direction) {
+      target[category][direction] = value;
+    }
+  };
 
   useLayoutEffect(() => {
     if (speed == undefined || !currentTopic) {
       return;
     }
 
-    const message = {
-      linear: { x: 0, y: 0, z: 0 },
-      angular: { x: 0, y: 0, z: 0 },
+    const publishMessage = () => {
+      const message = createMessage();
+      setTwistValue(message, config.xAxis, speed.x);
+      setTwistValue(message, config.yAxis, speed.y);
+      context.publish?.(currentTopic, message);
     };
 
-    function setTwistValue(axis: Axis, value: number) {
-      switch (axis.field) {
-        case "linear-x":
-          message.linear.x = value;
-          break;
-        case "linear-y":
-          message.linear.y = value;
-          break;
-        case "linear-z":
-          message.linear.z = value;
-          break;
-        case "angular-x":
-          message.angular.x = value;
-          break;
-        case "angular-y":
-          message.angular.y = value;
-          break;
-        case "angular-z":
-          message.angular.z = value;
-          break;
-      }
-    }
-
-    setTwistValue(config.xAxis, speed.x);
-    setTwistValue(config.yAxis, speed.y);
-
-    // don't publish if rate is 0 or negative - this is a config error on user's part
-    if (config.publishRate <= 0) {
+    if (config.publishRate > 0) {
+      const intervalMs = (1000 * 1) / config.publishRate;
+      publishMessage();
+      const intervalHandle = setInterval(publishMessage, intervalMs);
+      return () => {
+        clearInterval(intervalHandle);
+      };
+    } else {
       return;
     }
-
-    const intervalMs = (1000 * 1) / config.publishRate;
-    context.publish?.(currentTopic, message);
-    const intervalHandle = setInterval(() => {
-      context.publish?.(currentTopic, message);
-    }, intervalMs);
-
-    return () => {
-      clearInterval(intervalHandle);
-    };
   }, [context, config, currentTopic, speed]);
 
   useLayoutEffect(() => {
@@ -247,7 +271,7 @@ function Joy(props: JoyProps): JSX.Element {
         <EmptyState>Select a publish topic in the panel settings</EmptyState>
       )}
       {enabled && (
-        <DirectionalPad
+        <JoyVisual
           disabled={!enabled}
           onSpeedChange={(value) => {
             setVelocity(value);

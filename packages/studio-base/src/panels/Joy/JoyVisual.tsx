@@ -7,15 +7,15 @@ import React, { useCallback, useState, useRef } from "react";
 import "./styles.css";
 
 // Type for the Joystick Props
-type DirectionalPadProps = {
+type JoyVisualProps = {
   disabled?: boolean;
   onSpeedChange?: (pos: { x: number; y: number }) => void;
   xLimit?: number;
   yLimit?: number;
 };
 
-// Component for the DirectionalPad
-function DirectionalPad(props: DirectionalPadProps): JSX.Element {
+// Component for the JoyVisual
+function JoyVisual(props: JoyVisualProps): JSX.Element {
   const { onSpeedChange, disabled = false, xLimit, yLimit } = props;
   const [speed, setSpeed] = useState<{ x: number; y: number } | undefined>();
   const [maxXAxis, setMaxXAxis] = useState(0.5);
@@ -141,7 +141,6 @@ function DirectionalPad(props: DirectionalPadProps): JSX.Element {
         <div className="slider-panel">
           <p className="note"> X Axis</p>
           <input
-            id="max-x-speed"
             className="slider"
             type="range"
             aria-orientation="vertical"
@@ -159,7 +158,6 @@ function DirectionalPad(props: DirectionalPadProps): JSX.Element {
         <div className="slider-panel">
           <p className="note"> Y Axis</p>
           <input
-            id="max-y-speed"
             className="slider"
             type="range"
             min="0"
@@ -177,4 +175,4 @@ function DirectionalPad(props: DirectionalPadProps): JSX.Element {
   );
 }
 
-export default DirectionalPad;
+export default JoyVisual;
