@@ -25,10 +25,9 @@ body {
 
 .joystick-panel {
   flex-direction: column;
-  max-width: 800px;
   text-align: center;
   align-items: center;
-  padding: 20px 70px;
+  padding: 20px 60px;
 }
 
 #joystick {
@@ -40,7 +39,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 70px 100px 110px;
+  margin: 70px 70px 110px;
 }
 
 #joystick::before {
@@ -146,42 +145,20 @@ body {
 
 .slider-panel {
   flex-direction: column;
-  padding: 0px 20px;
-  justify-content: center;
+  padding: 0px 10px;
 }
 
 .slider {
   display: flex;
   writing-mode: vertical-rl;
   direction: rtl;
-  height: 200px;
+  height: 230px;
   margin: 0 auto;
-  position: relative;
-}
-
-.slider::before {
-  content: "";
-  position: absolute;
-  top: -10px;
-  bottom: -10px;
-  left: -20px;
-  right: -20px;
-}
-
-.slider:hover::before,
-.slider:focus::before {
-  cursor: pointer;
-}
-
-.slider::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
 }
 
 .note {
   display: flex;
   justify-content: center;
-  font-size: 2em;
-  position: relative;
-  margin: 10px 0px;
+  font-size: 1.6em;
+  margin: 5px 0px;
 }
