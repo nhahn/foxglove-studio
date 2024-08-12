@@ -9,16 +9,11 @@ services:
       context: ./
       args: 
         TAG: ${TAG:-latest}
-      x-bake:
-        platforms:
-          - linux/amd64
-          - linux/arm64
     # env_file:
     # - ./.env
     # - path: ../.env
     #   required: false
     # volumes:
     # - ./foxglove-layout.json:/foxglove/default-layout.json
-    network_mode: host
     ports:
     - "8080:8080"
