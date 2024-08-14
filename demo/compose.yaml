@@ -1,5 +1,4 @@
 x-common-config: &common-config
-  network_mode: host
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
