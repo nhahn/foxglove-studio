@@ -1,0 +1,19 @@
+######
+# Compose fragment file for the HoloROS driver
+######
+
+services:
+  foxglove-studio:
+    image: registry.gitlab.sitcore.net/xr-autonomy/holo-ros/foxglove-studio:${TAG:-latest}
+    build:
+      context: ./
+      args: 
+        TAG: ${TAG:-latest}
+    # env_file:
+    # - ./.env
+    # - path: ../.env
+    #   required: false
+    # volumes:
+    # - ./foxglove-layout.json:/foxglove/default-layout.json
+    ports:
+    - "8080:8080"
