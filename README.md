@@ -1,131 +1,59 @@
-[![Accelerate your robotics development](https://user-images.githubusercontent.com/14011012/195918769-5aaeedf3-5de2-48fb-951e-7399f2b9e190.png)](https://foxglove.dev)
-
-<br/>
+<h1 align="center">Lichtblick</h1>
 
 <div align="center">
-    <h1>Foxglove Studio</h1>
-    <a href="https://github.com/foxglove/studio/releases"><img src="https://img.shields.io/github/v/release/foxglove/studio?label=version" /></a>
-    <a href="https://github.com/foxglove/studio/blob/main/LICENSE"><img src="https://img.shields.io/github/license/foxglove/studio" /></a>
-    <a href="https://github.com/orgs/foxglove/discussions"><img src="https://img.shields.io/github/discussions/foxglove/community.svg?logo=github" /></a>
-    <a href="https://foxglove.dev/slack"><img src="https://img.shields.io/badge/chat-slack-purple.svg?logo=slack" /></a>
-    <br />
-    <br />
-    <a href="https://foxglove.dev/download">Download</a>
-    <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://docs.foxglove.dev/docs">Docs</a>
-    <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://foxglove.dev/blog">Blog</a>
-    <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://foxglove.dev/slack">Slack</a>
-    <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://twitter.com/foxglovedev">Twitter</a>
-    <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://foxglove.dev/contact">Contact Us</a>
-  <br />
-  <br />
+  <a href="https://github.com/bmw-software-engineering/lichtblick/stargazers"><img src="https://img.shields.io/github/stars/bmw-software-engineering/lichtblick" alt="Stars Badge"/></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/network/members"><img src="https://img.shields.io/github/forks/bmw-software-engineering/lichtblick" alt="Forks Badge"/></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/pulls"><img src="https://img.shields.io/github/issues-pr/bmw-software-engineering/lichtblick" alt="Pull Requests Badge"/></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/issues"><img src="https://img.shields.io/github/issues/bmw-software-engineering/lichtblick" alt="Issues Badge"/></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/issues"><img src="https://img.shields.io/github/issues/bmw-software-engineering/lichtblick" alt="Version"/></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/bmw-software-engineering/lichtblick?color=2b9348"></a>
+  <a href="https://github.com/bmw-software-engineering/lichtblick/blob/master/LICENSE"><img src="https://img.shields.io/github/license/bmw-software-engineering/lichtblick?color=2b9348" alt="License Badge"/></a>
 
-[Foxglove](https://foxglove.dev) is an integrated visualization and diagnosis tool for robotics.
-
+  <br />
+<p  align="center">
+Lichtblick is an integrated visualization and diagnosis tool for robotics, available in your browser or as a desktop app on Linux, Windows, and macOS.
+</p>
   <p align="center">
-    <a href="https://foxglove.dev"><img alt="Foxglove Studio screenshot" src="/resources/screenshot.png"></a>
+    <img alt="Lichtblick screenshot" src="resources/screenshot.png">
   </p>
 </div>
 
-<hr />
+**Dependencies:**
 
-To learn more, visit the following resources:
+- [Node.js](https://nodejs.org/en/) v16.10+
+- [Git LFS](https://git-lfs.github.com/)
 
-[About](https://foxglove.dev/about)
-&nbsp;•&nbsp;
-[Documentation](https://docs.foxglove.dev/docs)
-&nbsp;•&nbsp;
-[Release notes](https://github.com/foxglove/studio/releases)
-&nbsp;•&nbsp;
-[Blog](https://foxglove.dev/blog)
+<hr/>
 
-You can join us on the following platforms to ask questions, share feedback, and stay up to date on what our team is working on:
+## :rocket: Getting started
 
-[GitHub Discussions](https://github.com/orgs/foxglove/discussions)
-&nbsp;•&nbsp;
-[Slack](https://foxglove.dev/slack)
-&nbsp;•&nbsp;
-[Newsletter](https://foxglove.dev/#footer)
-&nbsp;•&nbsp;
-[Twitter](https://twitter.com/foxglovedev)
-&nbsp;•&nbsp;
-[LinkedIn](https://www.linkedin.com/company/foxglovedev/)
-
-<br />
-
-## Installation
-
-Foxglove Studio is available online at [studio.foxglove.dev](https://studio.foxglove.dev/), or desktop releases can be downloaded from [foxglove.dev/download](https://foxglove.dev/download).
-
-## Open Source
-
-Foxglove Studio follows an open core licensing model. Most functionality is available in this repository, and can be reproduced or modified per the terms of the [Mozilla Public License v2.0](/LICENSE).
-
-The official binary distributions available at [studio.foxglove.dev](https://studio.foxglove.dev/) or [foxglove.dev/download](https://foxglove.dev/download) incorporate some closed-source functionality, such as integration with [Foxglove Data Platform](https://foxglove.dev/data-platform), multiple layouts, private extensions, and more. For more information on free and paid features, see our [Pricing](https://foxglove.dev/pricing).
-
-## Self-hosting
-
-Foxglove Studio can be self-hosted using our [docker image](https://ghcr.io/foxglove/studio). Please note that this build does not contain any closed source functionality.
+Clone the repository:
 
 ### Building the container
 
 Please after cloning the repo you need to download some stuff from git lfs with:
 
 ```sh
-git lfs pull
+$ git clone https://github.com/bmw-software-engineering/lichtblick.git
 ```
 
-After that just build the container with:
+Pull large files with Git LFS:
 
 ```sh
-docker build -t local-foxglove .
-
+$ git lfs pull
 ```
 
-### Running the container
+Enable corepack:
 
 ```sh
-docker run --rm -p "8080:8080" local-foxglove
+$ corepack enable
 ```
 
-Foxglove Studio will be accessible in your browser at [localhost:8080](http://localhost:8080/).
-
-### Developing with the container
-
-The build process takes some minutes, so it is not practical to rebuild the container every time you make a change. You can use the following command to mount the local source code into the container and run the development server. But first, you need to modify the Dockerfile to comment the release part. For that, comment ALL lines from line 7 to the end of the Dockerfile. Then rebuild. After that, you can run the following command:
+Install packages from `package.json`:
 
 ```sh
-docker run --rm -it -p "8080:8080" --volume "${PWD}":"/src" --entrypoint bash local-foxglove
+$ yarn install
 ```
-
-It should open a bash terminal inside the container. Then you can run the following commands to start the development server:
-
-```sh
-yarn install
-yarn run web:serve
-```
-
-It will server the web app and recompile interactively when you make changes. You can access the web app at [localhost:8080](http://localhost:8080/).
-
-### Overriding the default layout
-
-[Bind-mount](https://docs.docker.com/storage/bind-mounts/) a layout JSON file at `/foxglove/default-layout.json` to set the default layout used when loading Studio from the Docker image.
-
-```sh
-docker run --rm -p "8080:8080" -v /path/to/custom_layout.json:/foxglove/default-layout.json ghcr.io/foxglove/studio:latest
-```
-
-## Contributing
-
-Foxglove Studio is written in TypeScript – contributions are welcome!
-
-Note: All contributors must agree to our [Contributor License Agreement](https://github.com/foxglove/cla). See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
-
-## Credits
 
 Foxglove Studio originally began as a fork of [Webviz](https://github.com/cruise-automation/webviz), an open source project developed by [Cruise](https://getcruise.com/). Most of the Webviz code has been rewritten, but some files still carry a Cruise license header where appropriate.
 
@@ -149,3 +77,52 @@ We developed a new player compatible with also our own [fork of rosboard](https:
    - Click `Open`.
 
 - **Note**: Ensure that your Rosboard instance is running and accessible via the websocket URL you intend to use.
+- If you still get errors about corepack after running `corepack enable`, try uninstalling and reinstalling Node.js. Ensure that Yarn is not separately installed from another source, but is installed _via_ corepack.
+
+Launch the development environment:
+
+```sh
+# To launch the desktop app (run both scripts concurrently):
+$ yarn desktop:serve        # start webpack
+$ yarn desktop:start        # launch electron
+
+# To launch the web app:
+$ yarn run web:serve        # it will be avaiable in http://localhost:8080
+```
+
+## :hammer_and_wrench: Building Lichtblick
+
+Build the application for production using these commands:
+
+```sh
+# To build the desktop apps:
+$ yarn run desktop:build:prod   # compile necessary files
+
+- yarn run package:win         # Package for windows
+- yarn run package:darwin      # Package for macOS
+- yarn run package:linux       # Package for linux
+
+# To build the web app:
+$ yarn run web:build:prod
+
+# To build and run the web app using docker:
+$ docker build . -t foxglove
+$ docker run -p 8080:8080 foxglove
+
+# It is possible to clean up build files using the following command:
+$ yarn run clean
+```
+
+- The desktop builds are located in the `dist` directory, and the web builds are found in the `web/.webpack` directory.
+
+## :pencil: License (Open Source)
+
+Lichtblick follows an open core licensing model. Most functionality is available in this repository, and can be reproduced or modified per the terms of the [Mozilla Public License v2.0](/LICENSE).
+
+## :handshake: Contributing
+
+Contributions are welcome! Lichtblick is primarily built in TypeScript and ReactJS. All potential contributors must agree to the Contributor License Agreement outlined in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## :star: Credits
+
+Lichtblick originally began as a fork of [FoxGlove Studio](https://github.com/foxglove/studio), an open source project developed by [Foxglove](https://app.foxglove.dev/).

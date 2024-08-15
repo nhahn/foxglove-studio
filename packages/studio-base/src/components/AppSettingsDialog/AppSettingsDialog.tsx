@@ -25,11 +25,12 @@ import { MouseEvent, SyntheticEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { makeStyles } from "tss-react/mui";
 
-import { AppSetting } from "@foxglove/studio-base";
+import { AppSetting } from "@foxglove/studio-base/AppSetting";
 import OsContextSingleton from "@foxglove/studio-base/OsContextSingleton";
 import CopyButton from "@foxglove/studio-base/components/CopyButton";
 import { ExperimentalFeatureSettings } from "@foxglove/studio-base/components/ExperimentalFeatureSettings";
-import FoxgloveLogoText from "@foxglove/studio-base/components/FoxgloveLogoText";
+import ExtensionsSettings from "@foxglove/studio-base/components/ExtensionsSettings";
+import LichtblickLogoText from "@foxglove/studio-base/components/LichtblickLogoText";
 import Stack from "@foxglove/studio-base/components/Stack";
 import { useAppContext } from "@foxglove/studio-base/context/AppContext";
 import {
@@ -139,49 +140,25 @@ const aboutItems = new Map<
   }
 >([
   [
-    "resources",
-    {
-      subheader: "External resources",
-      links: [
-        ...(isDesktopApp() ? [] : [{ title: "Desktop app", url: "https://foxglove.dev/download" }]),
-        { title: "Browse docs", url: "https://docs.foxglove.dev/docs" },
-        { title: "Join our community", url: "https://foxglove.dev/community" },
-      ],
-    },
-  ],
-  [
-    "products",
-    {
-      subheader: "Products",
-      links: [
-        { title: "Foxglove Studio", url: "https://foxglove.dev/studio" },
-        { title: "Foxglove Data Platform", url: "https://foxglove.dev/data-platform" },
-      ],
-    },
-  ],
-  [
-    "contact",
-    {
-      subheader: "Contact",
-      links: [
-        { title: "Give feedback", url: "https://foxglove.dev/contact" },
-        { title: "Schedule a demo", url: "https://foxglove.dev/demo" },
-      ],
-    },
-  ],
-  [
     "legal",
     {
       subheader: "Legal",
       links: [
-        { title: "License terms", url: "https://foxglove.dev/legal/studio-license" },
-        { title: "Privacy policy", url: "https://foxglove.dev/legal/privacy" },
+        {
+          title: "License terms",
+          url: "https://github.com/bmw-software-engineering/lichtblick/blob/main/LICENSE",
+        },
       ],
     },
   ],
 ]);
 
-export type AppSettingsTab = "general" | "extensions" | "experimental-features" | "about";
+export type AppSettingsTab =
+  | "general"
+  | "privacy"
+  | "extensions"
+  | "experimental-features"
+  | "about";
 
 const selectWorkspaceInitialActiveTab = (store: WorkspaceContextStore) =>
   store.dialogs.preferences.initialTab;
@@ -220,6 +197,8 @@ export function AppSettingsDialog(
     }
   };
 
+  const extensionSettingsComponent = extensionSettings ?? <ExtensionsSettings />;
+
   return (
     <Dialog {...props} fullWidth maxWidth="md" data-testid={`AppSettingsDialog--${activeTab}`}>
       <DialogTitle className={classes.dialogTitle}>
@@ -236,9 +215,7 @@ export function AppSettingsDialog(
           onChange={handleTabChange}
         >
           <Tab className={classes.tab} label={t("general")} value="general" />
-          {extensionSettings && (
-            <Tab className={classes.tab} label={t("extensions")} value="extensions" />
-          )}
+          <Tab className={classes.tab} label={t("extensions")} value="extensions" />
           <Tab
             className={classes.tab}
             label={t("experimentalFeatures")}
@@ -280,15 +257,13 @@ export function AppSettingsDialog(
             </Stack>
           </section>
 
-          {extensionSettings && (
-            <section
-              className={cx(classes.tabPanel, {
-                [classes.tabPanelActive]: activeTab === "extensions",
-              })}
-            >
-              <Stack gap={2}>{extensionSettings}</Stack>
-            </section>
-          )}
+          <section
+            className={cx(classes.tabPanel, {
+              [classes.tabPanelActive]: activeTab === "extensions",
+            })}
+          >
+            <Stack gap={2}>{extensionSettingsComponent}</Stack>
+          </section>
 
           <section
             className={cx(classes.tabPanel, {
@@ -310,11 +285,11 @@ export function AppSettingsDialog(
           >
             <Stack gap={2} alignItems="flex-start">
               <header>
-                <FoxgloveLogoText color="primary" className={classes.logo} />
+                <LichtblickLogoText color="primary" className={classes.logo} />
               </header>
               <Stack direction="row" alignItems="center" gap={1}>
                 <Typography variant="body2">
-                  Foxglove Studio version {FOXGLOVE_STUDIO_VERSION}
+                  Foxglove version {FOXGLOVE_STUDIO_VERSION}
                 </Typography>
                 <CopyButton
                   size="small"

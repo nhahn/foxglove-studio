@@ -70,6 +70,7 @@ export function AppMenu(props: AppMenuProps): JSX.Element {
         type: "item",
         label: t("open"),
         key: "open",
+        dataTestId: "menu-item-open",
         onClick: () => {
           dialogActions.dataSource.open("start");
           handleNestedMenuClose();
@@ -79,6 +80,7 @@ export function AppMenu(props: AppMenuProps): JSX.Element {
         type: "item",
         label: t("openLocalFile"),
         key: "open-file",
+        dataTestId: "menu-item-open-local-file",
         onClick: () => {
           handleNestedMenuClose();
           dialogActions.openFile.open().catch(console.error);
@@ -88,6 +90,7 @@ export function AppMenu(props: AppMenuProps): JSX.Element {
         type: "item",
         label: t("openConnection"),
         key: "open-connection",
+        dataTestId: "menu-item-open-connection",
         onClick: () => {
           dialogActions.dataSource.open("connection");
           handleNestedMenuClose();
@@ -184,16 +187,6 @@ export function AppMenu(props: AppMenuProps): JSX.Element {
     handleNestedMenuClose();
   }, [dialogActions.preferences, handleNestedMenuClose]);
 
-  const onDocsClick = useCallback(() => {
-    window.open("https://docs.foxglove.dev/docs", "_blank");
-    handleNestedMenuClose();
-  }, [handleNestedMenuClose]);
-
-  const onSlackClick = useCallback(() => {
-    window.open("https://foxglove.dev/slack", "_blank");
-    handleNestedMenuClose();
-  }, [handleNestedMenuClose]);
-
   const onDemoClick = useCallback(() => {
     dialogActions.dataSource.open("demo");
     handleNestedMenuClose();
@@ -203,18 +196,9 @@ export function AppMenu(props: AppMenuProps): JSX.Element {
     () => [
       { type: "item", key: "about", label: t("about"), onClick: onAboutClick },
       { type: "divider" },
-      { type: "item", key: "docs", label: t("viewOurDocs"), onClick: onDocsClick, external: true },
-      {
-        type: "item",
-        key: "join-slack",
-        label: t("joinOurSlack"),
-        onClick: onSlackClick,
-        external: true,
-      },
-      { type: "divider" },
       { type: "item", key: "demo", label: t("exploreSampleData"), onClick: onDemoClick },
     ],
-    [onAboutClick, onDemoClick, onDocsClick, onSlackClick, t],
+    [onAboutClick, onDemoClick, t],
   );
 
   return (

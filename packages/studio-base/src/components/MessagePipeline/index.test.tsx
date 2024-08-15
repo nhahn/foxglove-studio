@@ -14,7 +14,7 @@
 
 /* eslint-disable jest/no-conditional-expect */
 
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { PropsWithChildren, useCallback, useState } from "react";
 import { DeepPartial } from "ts-essentials";
 
@@ -29,7 +29,7 @@ import MockCurrentLayoutProvider from "@foxglove/studio-base/providers/CurrentLa
 import delay from "@foxglove/studio-base/util/delay";
 import { makeMockAppConfiguration } from "@foxglove/studio-base/util/makeMockAppConfiguration";
 
-import { MessagePipelineProvider, useMessagePipeline, MessagePipelineContext } from ".";
+import { MessagePipelineContext, MessagePipelineProvider, useMessagePipeline } from ".";
 import FakePlayer from "./FakePlayer";
 import { MAX_PROMISE_TIMEOUT_TIME_MS } from "./pauseFrameForPromise";
 
@@ -85,11 +85,13 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
         sortedTopics: [],
         datatypes: new Map(),
         setSubscriptions: expect.any(Function),
+        getMetadata: expect.any(Function),
         setPublishers: expect.any(Function),
         publish: expect.any(Function),
         callService: expect.any(Function),
         fetchAsset: expect.any(Function),
         startPlayback: undefined,
+        playUntil: undefined,
         pausePlayback: undefined,
         setPlaybackSpeed: undefined,
         seekPlayback: undefined,
@@ -101,6 +103,7 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
           activeData: undefined,
           capabilities: [],
           presence: PlayerPresence.NOT_PRESENT,
+          profile: undefined,
           playerId: "",
           progress: {},
         },
@@ -110,11 +113,13 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
         datatypes: new Map(),
         setSubscriptions: expect.any(Function),
         setPublishers: expect.any(Function),
+        getMetadata: expect.any(Function),
         publish: expect.any(Function),
         callService: expect.any(Function),
         fetchAsset: expect.any(Function),
         startPlayback: undefined,
         pausePlayback: undefined,
+        playUntil: undefined,
         setPlaybackSpeed: undefined,
         seekPlayback: undefined,
         setParameter: expect.any(Function),
@@ -136,7 +141,7 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
         playerState: {
           activeData: undefined,
           capabilities: [],
-          presence: PlayerPresence.NOT_PRESENT,
+          presence: PlayerPresence.INITIALIZING,
           playerId: "",
           progress: {},
         },
@@ -199,7 +204,7 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
     expect(all[0]!.playerState).toEqual({
       activeData: undefined,
       capabilities: [],
-      presence: PlayerPresence.NOT_PRESENT,
+      presence: PlayerPresence.INITIALIZING,
       playerId: "",
       progress: {},
     });
@@ -259,7 +264,7 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
         playerState: {
           activeData: undefined,
           capabilities: [],
-          presence: PlayerPresence.NOT_PRESENT,
+          presence: PlayerPresence.INITIALIZING,
           playerId: "",
           progress: {},
         },
@@ -946,6 +951,23 @@ describe("MessagePipelineProvider/useMessagePipeline", () => {
       await delay(20);
       // The second player was resumed and can now finish its frame.
       expect(secondPlayerHasFinishedFrame).toEqual(true);
+    });
+  });
+
+  describe("metadata", () => {
+    it("should return the correct metadata", () => {
+      const player = new FakePlayer();
+      const { Hook, Wrapper } = makeTestHook({ player });
+      const { result } = renderHook(Hook, {
+        wrapper: Wrapper,
+      });
+
+      expect(result.current.getMetadata()).toEqual([
+        {
+          name: "metadataFake",
+          metadata: { key: "value" },
+        },
+      ]);
     });
   });
 });

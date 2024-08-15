@@ -4,15 +4,18 @@
 
 import assert from "assert";
 import { useEffect } from "react";
+import { useAsync } from "react-use";
 import { useDebounce } from "use-debounce";
 
 import Log from "@foxglove/log";
+import { LOCAL_STORAGE_STUDIO_LAYOUT_KEY } from "@foxglove/studio-base/constants/localStorageKeys";
 import {
   LayoutState,
   useCurrentLayoutActions,
   useCurrentLayoutSelector,
 } from "@foxglove/studio-base/context/CurrentLayoutContext";
 import { LayoutData } from "@foxglove/studio-base/context/CurrentLayoutContext/actions";
+import { useLayoutManager } from "@foxglove/studio-base/context/LayoutManagerContext";
 import { usePlayerSelection } from "@foxglove/studio-base/context/PlayerSelectionContext";
 import { defaultLayout } from "@foxglove/studio-base/providers/CurrentLayoutProvider/defaultLayout";
 import { migratePanelsState } from "@foxglove/studio-base/services/migrateLayout";
@@ -23,13 +26,13 @@ function selectLayoutData(state: LayoutState) {
 
 const log = Log.getLogger(__filename);
 
-const KEY = "studio.layout";
-
 export function CurrentLayoutLocalStorageSyncAdapter(): JSX.Element {
   const { selectedSource } = usePlayerSelection();
 
-  const { setCurrentLayout } = useCurrentLayoutActions();
+  const { setCurrentLayout, getCurrentLayoutState } = useCurrentLayoutActions();
   const currentLayoutData = useCurrentLayoutSelector(selectLayoutData);
+
+  const layoutManager = useLayoutManager();
 
   useEffect(() => {
     if (selectedSource?.sampleLayout) {
@@ -46,13 +49,13 @@ export function CurrentLayoutLocalStorageSyncAdapter(): JSX.Element {
 
     const serializedLayoutData = JSON.stringify(debouncedLayoutData);
     assert(serializedLayoutData);
-    localStorage.setItem(KEY, serializedLayoutData);
+    localStorage.setItem(LOCAL_STORAGE_STUDIO_LAYOUT_KEY, serializedLayoutData);
   }, [debouncedLayoutData]);
 
   useEffect(() => {
-    log.debug(`Reading layout from local storage: ${KEY}`);
+    log.debug(`Reading layout from local storage: ${LOCAL_STORAGE_STUDIO_LAYOUT_KEY}`);
 
-    const serializedLayoutData = localStorage.getItem(KEY);
+    const serializedLayoutData = localStorage.getItem(LOCAL_STORAGE_STUDIO_LAYOUT_KEY);
 
     if (serializedLayoutData) {
       log.debug("Restoring layout from local storage");
@@ -65,6 +68,24 @@ export function CurrentLayoutLocalStorageSyncAdapter(): JSX.Element {
     );
     setCurrentLayout({ data: layoutData });
   }, [setCurrentLayout]);
+
+  // Send new layoudData to layoutManager to be saved
+  useAsync(async () => {
+    const layoutState = getCurrentLayoutState();
+
+    if (!layoutState.selectedLayout) {
+      return;
+    }
+    try {
+      await layoutManager.updateLayout({
+        id: layoutState.selectedLayout.id,
+        name: layoutState.selectedLayout.name,
+        data: debouncedLayoutData,
+      });
+    } catch (error) {
+      log.error(error);
+    }
+  }, [debouncedLayoutData, getCurrentLayoutState, layoutManager]);
 
   return <></>;
 }

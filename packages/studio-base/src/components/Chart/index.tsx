@@ -355,6 +355,7 @@ function Chart(props: Props): JSX.Element {
       if (isMounted()) {
         setUpdateError(err);
       }
+      console.error(err);
     });
   }, [getNewUpdateMessage, isMounted, updateChart]);
 

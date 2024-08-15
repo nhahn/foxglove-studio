@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import tc from "tinycolor2";
 import { makeStyles } from "tss-react/mui";
 
-import { FoxgloveLogo } from "@foxglove/studio-base/components/FoxgloveLogo";
+import { LichtblickLogo } from "@foxglove/studio-base/components/LichtblickLogo";
 import Stack from "@foxglove/studio-base/components/Stack";
 import { useAppContext } from "@foxglove/studio-base/context/AppContext";
 import {
@@ -198,6 +198,7 @@ export function AppBar(props: AppBarProps): JSX.Element {
                 className={cx(classes.logo, { "Mui-selected": appMenuOpen })}
                 color="inherit"
                 id="app-menu-button"
+                data-testid="AppMenuButton"
                 title="Menu"
                 aria-controls={appMenuOpen ? "app-menu" : undefined}
                 aria-haspopup="true"
@@ -207,7 +208,7 @@ export function AppBar(props: AppBarProps): JSX.Element {
                   setAppMenuEl(event.currentTarget);
                 }}
               >
-                <FoxgloveLogo fontSize="inherit" color="inherit" />
+                <LichtblickLogo fontSize="inherit" color="inherit" />
                 <ChevronDown12Regular
                   className={classes.dropDownIcon}
                   primaryFill={theme.palette.common.white}

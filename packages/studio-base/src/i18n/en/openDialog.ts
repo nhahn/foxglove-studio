@@ -9,14 +9,10 @@ export const openDialog = {
     "Use a convenient web interface to tag, search, and retrieve data at lightning speed",
   createAFreeAccount: "Create a free account",
   exploreSampleData: "Explore sample data",
-  joinOurCommunity: "Join our community",
-  joinOurCommunityDescription:
-    "Join us on Slack or GitHub to get help, make feature requests, and report bugs.",
-  joinOurSlack: "Join our Slack",
   learnMore: "Learn more",
   needHelp: "Need help?",
   needHelpDescription: "View our documentation, or check out the tutorials on the Foxglove blog.",
-  newToFoxgloveStudio: "New to Foxglove Studio?",
+  newToFoxgloveStudio: "New to Foxglove?",
   newToFoxgloveStudioDescription:
     "Start by exploring a sample dataset or checking out our documentation.",
   openAGitHubIssue: "Open a GitHub issue",
@@ -36,5 +32,4 @@ export const openDialog = {
   startCollaboratingDescription:
     "Make the most of your Foxglove account – whether you want to dive deep on your data or share tools with your teammates.",
   uploadToDataPlatform: "Upload to Data Platform",
-  viewOurDocs: "View our docs",
 };

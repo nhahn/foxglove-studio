@@ -41,6 +41,7 @@ describe("<DocumentDropListener>", () => {
       </div>,
       wrapper,
     );
+
     (console.error as jest.Mock).mockClear();
   });
 
@@ -64,11 +65,12 @@ describe("<DocumentDropListener>", () => {
     act(() => {
       document.dispatchEvent(event); // The event should NOT bubble up from the document to the window
     });
+
     expect(windowDragoverHandler).not.toHaveBeenCalled();
   });
 
   afterEach(() => {
-    document.body.removeChild(wrapper);
+    wrapper.remove();
     window.removeEventListener("dragover", windowDragoverHandler);
   });
 });
