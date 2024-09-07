@@ -4,6 +4,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "./dist",
+    "allowJs": true,
     "lib": ["DOM", "es2022"]
   }
 }

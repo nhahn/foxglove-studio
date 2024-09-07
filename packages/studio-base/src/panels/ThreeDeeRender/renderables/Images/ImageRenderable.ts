@@ -19,8 +19,7 @@ import { RosValue } from "@foxglove/studio-base/players/types";
 
 import { AnyImage, CompressedVideo } from "./ImageTypes";
 import { decodeCompressedImageToBitmap,   decodeCompressedVideoToBitmap,
-  emptyVideoFrame,
-  getVideoDecoderConfig, } from "./decodeImage";
+  emptyVideoFrame } from "./decodeImage";
 import { CameraInfo } from "../../ros";
 import { DECODE_IMAGE_ERR_KEY, IMAGE_TOPIC_PATH } from "../ImageMode/constants";
 import { ColorModeSettings } from "../colorMode";
@@ -249,11 +248,11 @@ export class ImageRenderable extends Renderable<ImageUserData> {
           const error = "Empty video frame";
           log.error(error);
           // show last frame instead of error image if available
-          if (this.videoPlayer?.lastImageBitmap) {
-            return this.videoPlayer.lastImageBitmap;
+          if (this.videoPlayer?.lastFrameData) {
+            return this.videoPlayer.lastFrameData;
           }
           // show black image instead of error image
-          return await emptyVideoFrame(this.videoPlayer, resizeWidth);
+          return emptyVideoFrame(this.videoPlayer, resizeWidth);
           // Raise error so the caller can catch it and display an error image
           throw new Error(error);
         }
@@ -269,19 +268,6 @@ export class ImageRenderable extends Renderable<ImageUserData> {
           });
         }
         const videoPlayer = this.videoPlayer;
-
-        // Initialize the video player if needed
-        if (!videoPlayer.isInitialized()) {
-          const decoderConfig = getVideoDecoderConfig(frameMsg);
-          if (decoderConfig) {
-            await videoPlayer.init(decoderConfig);
-          } else {
-            // Raise error so the caller can catch it
-            throw new Error("Waiting for keyframe");
-            return await emptyVideoFrame(this.videoPlayer, resizeWidth);
-          }
-        }
-
         assert(this.userData.firstMessageTime != undefined, "firstMessageTime must be set");
 
         return await decodeCompressedVideoToBitmap(

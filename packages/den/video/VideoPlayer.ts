@@ -2,9 +2,10 @@
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-import { Mutex } from "async-mutex";
+import { Mutex, withTimeout } from "async-mutex";
 import EventEmitter from "eventemitter3";
 import Logger from "@foxglove/log";
+import * as H264 from "./h264";
 
 // foxglove-depcheck-used: @types/dom-webcodecs
 
@@ -16,6 +17,11 @@ export type VideoPlayerEventTypes = {
   warn: (message: string) => void;
   error: (error: Error) => void;
 };
+
+const options = {
+  format: "RGBA",
+  colorSpace: "srgb",
+} as VideoFrameCopyToOptions;
 
 const log = Logger.getLogger(__filename);
 
@@ -30,74 +36,120 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
   #decoderInit: VideoDecoderInit;
   #decoder: VideoDecoder;
   #decoderConfig: VideoDecoderConfig | undefined;
-  #mutex = new Mutex();
-  #timeoutId: ReturnType<typeof setTimeout> | undefined;
-  #pendingFrame: VideoFrame | undefined;
-  #codedSize: { width: number; height: number } | undefined;
+  naluStreamInfo: H264.NaluStreamInfo | undefined;
+  #mutex = withTimeout(new Mutex(), MAX_DECODE_WAIT_MS);
   // Stores the last decoded frame as an ImageBitmap, should be set after decode()
-  lastImageBitmap: ImageBitmap | undefined;
+  lastFrameData: ImageData | undefined;
 
   /** Reports whether video decoding is supported in this browser session */
   public static IsSupported(): boolean {
     return self.isSecureContext && "VideoDecoder" in globalThis;
   }
 
+  private getNaluStreamInfo(imgData: Uint8Array) {
+    if (this.naluStreamInfo == undefined) {
+      const streamInfo = H264.identifyNaluStreamInfo(imgData);
+      if (streamInfo.type !== "unknown") {
+        this.naluStreamInfo = streamInfo;
+        console.debug(
+          `Stream identified as ${streamInfo.type} with box size: ${streamInfo.boxSize}`,
+        );
+      }
+    }
+    return this.naluStreamInfo;
+  }
+
+  private getAnnexBFrame(frameData: Uint8Array) {
+    const streamInfo = this.getNaluStreamInfo(frameData);
+    if (streamInfo?.type === "packet") {
+      const res = new H264.NALUStream(frameData, {
+        type: "packet",
+        boxSize: streamInfo.boxSize,
+      }).convertToAnnexB().buf;
+      return res;
+    }
+    return frameData;
+  }
+
   public constructor() {
     super();
     this.#decoderInit = {
       output: (videoFrame: VideoFrame) => {
-        this.#pendingFrame?.close();
-        this.#pendingFrame = videoFrame;
-        this.emit("frame", videoFrame);
+        const size = videoFrame.allocationSize(options);
+        const buffer = new ArrayBuffer(size);
+        videoFrame.copyTo(buffer, options).then(() => {
+          this.lastFrameData = new ImageData( new Uint8ClampedArray(buffer), videoFrame.displayWidth, videoFrame.displayHeight);
+          videoFrame.close();
+          this.emit("frame", videoFrame);
+        })
       },
       error: (error) => this.emit("error", error),
     };
     this.#decoder = new VideoDecoder(this.#decoderInit);
   }
 
+  private getDecoderConfig(frameData: Uint8Array): VideoDecoderConfig | null {
+    const nalus = H264.getNalus(frameData);
+    const spsNalu = nalus.find((n) => n.type === H264.NaluTypes.SPS);
+    if (spsNalu) {
+      const sps = new H264.SPS(spsNalu.nalu.nalu);
+      const decoderConfig: VideoDecoderConfig = {
+        codec: sps.MIME,
+        codedHeight: sps.picHeight,
+        codedWidth: sps.picWidth,
+      };
+      return decoderConfig;
+    }
+    return null;
+  }
+
+  private isKeyFrame(frameData: Uint8Array): boolean {
+    const nalus = H264.getNalus(frameData);
+    return nalus.find((n) => n.type === H264.NaluTypes.IDR) != undefined;
+  }
+
   /**
    * Configures the VideoDecoder with the given VideoDecoderConfig. This must
    * be called before decode() will return a VideoFrame.
    */
-  public async init(decoderConfig: VideoDecoderConfig): Promise<void> {
-    return await this.#mutex.runExclusive(async () => {
-      // Optimize for latency means we do not have to call flush() in every decode() call
-      // See <https://github.com/w3c/webcodecs/issues/206>
-      decoderConfig.optimizeForLatency = true;
+  public async init(frame: Uint8Array): Promise<boolean> {
+    const decoderConfig = this.getDecoderConfig(frame);    
+    if (!decoderConfig) {
+      return false;
+    }
+    // Optimize for latency means we do not have to call flush() in every decode() call
+    // See <https://github.com/w3c/webcodecs/issues/206>
+    decoderConfig.optimizeForLatency = true;
+    // Try with 'prefer-hardware' first
+    let modifiedConfig = { ...decoderConfig };
+    modifiedConfig.hardwareAcceleration = "prefer-hardware";
 
-      // Try with 'prefer-hardware' first
-      let modifiedConfig = { ...decoderConfig };
-      modifiedConfig.hardwareAcceleration = "prefer-hardware";
+    let support = await VideoDecoder.isConfigSupported(modifiedConfig);
+    if (support.supported !== true) {
+      log.warn(`VideoDecoder does not support configuration ${JSON.stringify(modifiedConfig)}. Trying without 'prefer-hardware'`);
+      // If 'prefer-hardware' is not supported, try without it
+      modifiedConfig = { ...decoderConfig };
+      support = await VideoDecoder.isConfigSupported(modifiedConfig);
+    }
 
-      let support = await VideoDecoder.isConfigSupported(modifiedConfig);
-      if (support.supported !== true) {
-        log.warn(`VideoDecoder does not support configuration ${JSON.stringify(modifiedConfig)}. Trying without 'prefer-hardware'`);
-        // If 'prefer-hardware' is not supported, try without it
-        modifiedConfig = { ...decoderConfig };
-        support = await VideoDecoder.isConfigSupported(modifiedConfig);
-      }
+    if (support.supported !== true) {
+      const err = new Error(
+        `VideoDecoder does not support configuration ${JSON.stringify(decoderConfig)}`,
+      );
+      this.emit("error", err);
+      return false;
+    }
 
-      if (support.supported !== true) {
-        const err = new Error(
-          `VideoDecoder does not support configuration ${JSON.stringify(decoderConfig)}`,
-        );
-        this.emit("error", err);
-        return;
-      }
+    if (this.#decoder.state === "closed") {
+      this.emit("debug", "VideoDecoder is closed, creating a new one");
+      this.#decoder = new VideoDecoder(this.#decoderInit);
+    }
 
-      if (this.#decoder.state === "closed") {
-        this.emit("debug", "VideoDecoder is closed, creating a new one");
-        this.#decoder = new VideoDecoder(this.#decoderInit);
-      }
+    this.emit("debug", `Configuring VideoDecoder with ${JSON.stringify(decoderConfig)}`);
+    this.#decoder.configure(decoderConfig);
+    this.#decoderConfig = decoderConfig;
 
-      this.emit("debug", `Configuring VideoDecoder with ${JSON.stringify(decoderConfig)}`);
-      this.#decoder.configure(decoderConfig);
-      this.#decoderConfig = decoderConfig;
-      this.#codedSize = undefined;
-      if (decoderConfig.codedWidth != undefined && decoderConfig.codedHeight != undefined) {
-        this.#codedSize = { width: decoderConfig.codedWidth, height: decoderConfig.codedHeight };
-      }
-    });
+    return true;
   }
 
   /** Returns true if the VideoDecoder is open and configured, ready for decoding. */
@@ -108,11 +160,6 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
   /** Returns the VideoDecoderConfig given to init(), or undefined if init() has not been called. */
   public decoderConfig(): VideoDecoderConfig | undefined {
     return this.#decoderConfig;
-  }
-
-  /** Returns the dimensions of the coded video frames, if known. */
-  public codedSize(): { width: number; height: number } | undefined {
-    return this.#codedSize;
   }
 
   /**
@@ -131,72 +178,52 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
   public async decode(
     data: Uint8Array,
     timestampMicros: number,
-    type: "key" | "delta",
-  ): Promise<VideoFrame | undefined> {
+  ): Promise<ImageData | undefined> {
+    let frameHandler: () => void | undefined;
     return await this.#mutex.runExclusive(async () => {
-      if (this.#decoder.state === "closed") {
-        this.emit("warn", "VideoDecoder is closed, creating a new one");
-        this.#decoder = new VideoDecoder(this.#decoderInit);
-      }
-
-      if (this.#decoder.state === "unconfigured") {
-        this.emit("debug", "Waiting for initialization...");
-        return undefined;
-      }
-
-      await new Promise<void>((resolve) => {
-        const frameHandler = () => {
-          if (this.#timeoutId != undefined) {
-            clearTimeout(this.#timeoutId);
+        // the decoder, as it is configured, expects 'annexB' style h264 data.
+        const frame = this.getAnnexBFrame(data);
+        if (!this.isInitialized()) {
+          if (!await this.init(frame)) {
+            return undefined;
           }
-          resolve();
-        };
-
-        if (this.#timeoutId != undefined) {
-          clearTimeout(this.#timeoutId);
         }
+        const keyframe = this.isKeyFrame(data) ? "key" : "delta";
 
-        this.#timeoutId = setTimeout(() => {
-          this.removeListener("frame", frameHandler);
-          this.emit(
-            "warn",
-            `Timed out decoding ${data.byteLength} byte chunk at time ${timestampMicros}`,
-          );
-          resolve(undefined);
-        }, MAX_DECODE_WAIT_MS);
+        await new Promise<void>((resolve) => {
+          frameHandler = () => resolve();
+          this.once("frame", frameHandler);
 
-        this.once("frame", frameHandler);
+          try {
+            this.#decoder.decode(
+              new EncodedVideoChunk({
+                type: keyframe,
+                data: frame,
+                timestamp: timestampMicros,
+              }),
+            );
+          } catch (e) {
+            this.removeListener("frame", frameHandler);
 
-        try {
-          this.#decoder.decode(new EncodedVideoChunk({ type, data, timestamp: timestampMicros }));
-        } catch (unk) {
-          clearTimeout(this.#timeoutId);
-          this.removeListener("frame", frameHandler);
+            const error = new Error(
+              `Failed to decode ${data.byteLength} byte chunk at time ${timestampMicros}: ${
+                (e as Error).message
+              }`,
+            );
+            this.emit("error", error);
+            resolve();        }
+        });
 
-          const error = new Error(
-            `Failed to decode ${data.byteLength} byte chunk at time ${timestampMicros}: ${
-              (unk as Error).message
-            }`,
-          );
-          this.emit("error", error);
-          resolve();
-        }
+        return this.lastFrameData;
+      }).catch(e => {
+        if (frameHandler) this.removeListener("frame", frameHandler);
+        this.emit(
+          "warn",
+          `Timed out decoding ${data.byteLength} byte chunk at time ${timestampMicros}`,
+        );
+        this.#mutex.release();
+        return undefined;
       });
-
-      const maybeVideoFrame = this.#pendingFrame;
-      this.#pendingFrame = undefined;
-
-      // Update the coded and display sizes if we have a new frame
-      if (maybeVideoFrame) {
-        if (!this.#codedSize) {
-          this.#codedSize = { width: 0, height: 0 };
-        }
-        this.#codedSize.width = maybeVideoFrame.codedWidth;
-        this.#codedSize.height = maybeVideoFrame.codedHeight;
-      }
-
-      return maybeVideoFrame;
-    });
   }
 
   /**
@@ -208,11 +235,7 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
     if (this.#decoder.state === "configured") {
       this.#decoder.reset();
     }
-    if (this.#timeoutId != undefined) {
-      clearTimeout(this.#timeoutId);
-    }
-    this.#pendingFrame?.close();
-    this.#pendingFrame = undefined;
+    this.#mutex.cancel();
   }
 
   /**
@@ -223,10 +246,6 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
     if (this.#decoder.state !== "closed") {
       this.#decoder.close();
     }
-    if (this.#timeoutId != undefined) {
-      clearTimeout(this.#timeoutId);
-    }
-    this.#pendingFrame?.close();
-    this.#pendingFrame = undefined;
+    this.#mutex.cancel();
   }
 }

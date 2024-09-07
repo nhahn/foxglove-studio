@@ -19,8 +19,8 @@ import {
   decodeUYVY,
   decodeYUYV,
 } from "@foxglove/den/image";
-import { H264, VideoPlayer } from "@foxglove/den/video";
-import { toMicroSec } from "@foxglove/rostime";
+import { VideoPlayer } from "@foxglove/den/video";
+import { subtract as subtractTimes, toMicroSec, fromNanoSec } from "@foxglove/rostime";
 import { RawImage } from "@foxglove/schemas";
 
 import { CompressedImageTypes, CompressedVideo } from "./ImageTypes";
@@ -35,53 +35,21 @@ export async function decodeCompressedImageToBitmap(
   return await createImageBitmap(bitmapData, { resizeWidth });
 }
 
-export function isVideoKeyframe(frameMsg: CompressedVideo): boolean {
-  switch (frameMsg.format) {
-    case "h264": {
-      // Search for an IDR NAL unit to determine if this is a keyframe
-      return H264.IsKeyframe(frameMsg.data);
-    }
-  }
-  return false;
-}
-
-export function getVideoDecoderConfig(frameMsg: CompressedVideo): VideoDecoderConfig | undefined {
-  switch (frameMsg.format) {
-    case "h264": {
-      // Search for an SPS NAL unit to initialize the decoder. This should precede each keyframe
-      return H264.ParseDecoderConfig(frameMsg.data);
-    }
-  }
-
-  return undefined;
-}
-
 export async function decodeCompressedVideoToBitmap(
   frameMsg: CompressedVideo,
   videoPlayer: VideoPlayer,
   firstMessageTime: bigint,
   resizeWidth?: number,
-): Promise<ImageBitmap> {
-  if (!videoPlayer.isInitialized()) {
-    return await emptyVideoFrame(videoPlayer, resizeWidth);
-  }
-
+): Promise<ImageData> {
   // Get the timestamp of this frame as microseconds relative to the first frame
-  const firstTimestampMicros = Number(firstMessageTime / 1000n);
-  const timestampMicros = toMicroSec(frameMsg.timestamp) - firstTimestampMicros;
+  
+  const timestampMicros = toMicroSec(subtractTimes(frameMsg.timestamp, fromNanoSec(firstMessageTime)));
 
   const videoFrame = await videoPlayer.decode(
     frameMsg.data,
     timestampMicros,
-    isVideoKeyframe(frameMsg) ? "key" : "delta",
   );
-  if (videoFrame) {
-    const imageBitmap = await self.createImageBitmap(videoFrame, { resizeWidth });
-    videoPlayer.lastImageBitmap = imageBitmap;
-    videoFrame.close();
-    return imageBitmap;
-  }
-  return await emptyVideoFrame(videoPlayer, resizeWidth);
+  return videoFrame ?? emptyVideoFrame(videoPlayer, resizeWidth);
 }
 
 export const IMAGE_DEFAULT_COLOR_MODE_SETTINGS: Required<
@@ -188,9 +156,9 @@ export function decodeRawImage(
 export function emptyVideoFrame(
   videoPlayer?: VideoPlayer,
   resizeWidth?: number,
-): Promise<ImageBitmap> {
+): ImageData {
   const width = resizeWidth ?? 32;
-  const size = videoPlayer?.codedSize() ?? { width, height: width };
+  const size = videoPlayer?.lastFrameData?.width? {width: videoPlayer?.lastFrameData?.width, height: videoPlayer?.lastFrameData?.height} : { width, height: width };
   const data = new ImageData(size.width, size.height);
-  return createImageBitmap(data, { resizeWidth });
+  return data;
 }
