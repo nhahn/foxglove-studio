@@ -6,7 +6,6 @@ import * as _ from "lodash-es";
 import * as THREE from "three";
 import { assert } from "ts-essentials";
 
-import { VideoPlayer } from "@foxglove/den/video";
 import { PinholeCameraModel } from "@foxglove/den/image";
 import Logger from "@foxglove/log";
 import { toNanoSec } from "@foxglove/rostime";
@@ -17,9 +16,8 @@ import { WorkerImageDecoder } from "@foxglove/studio-base/panels/ThreeDeeRender/
 import { projectPixel } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/projections";
 import { RosValue } from "@foxglove/studio-base/players/types";
 
-import { AnyImage, CompressedVideo } from "./ImageTypes";
-import { decodeCompressedImageToBitmap,   decodeCompressedVideoToBitmap,
-  emptyVideoFrame } from "./decodeImage";
+import { AnyImage } from "./ImageTypes";
+import { decodeCompressedImageToBitmap, emptyVideoFrame } from "./decodeImage";
 import { CameraInfo } from "../../ros";
 import { DECODE_IMAGE_ERR_KEY, IMAGE_TOPIC_PATH } from "../ImageMode/constants";
 import { ColorModeSettings } from "../colorMode";
@@ -62,9 +60,6 @@ export type ImageUserData = BaseUserData & {
 };
 
 export class ImageRenderable extends Renderable<ImageUserData> {
-  // A lazily instantiated player for compressed video
-  public videoPlayer: VideoPlayer | undefined;
-
   // Make sure that everything is build the first time we render
   // set when camera info or image changes
   #geometryNeedsUpdate = true;
@@ -242,41 +237,18 @@ export class ImageRenderable extends Renderable<ImageUserData> {
   ): Promise<ImageBitmap | ImageData> {
     if ("format" in image) {
       if (VIDEO_FORMATS.has(image.format)) {
-        const frameMsg = image as CompressedVideo;
-
-        if (frameMsg.data.byteLength === 0) {
-          const error = "Empty video frame";
-          log.error(error);
+        if (image.data.byteLength === 0) {
+          log.error("Empty video frame");
           // show last frame instead of error image if available
-          if (this.videoPlayer?.lastFrameData) {
-            return this.videoPlayer.lastFrameData;
+          if (this.#decodedImage) {
+            return this.#decodedImage;
           }
           // show black image instead of error image
-          return emptyVideoFrame(this.videoPlayer, resizeWidth);
-          // Raise error so the caller can catch it and display an error image
-          throw new Error(error);
+          return emptyVideoFrame(this.userData.texture?.image, resizeWidth);
         }
-
-        if (!this.videoPlayer) {
-          this.videoPlayer = new VideoPlayer();
-          this.videoPlayer.on("error", (err) => {
-            log.error(err);
-            this.addError(DECODE_IMAGE_ERR_KEY, `Error decoding video: ${err.message}`);
-          });
-          this.videoPlayer.on("warn", (msg) => {
-            log.warn(msg);
-          });
-        }
-        const videoPlayer = this.videoPlayer;
         assert(this.userData.firstMessageTime != undefined, "firstMessageTime must be set");
-
-        return await decodeCompressedVideoToBitmap(
-          frameMsg,
-          videoPlayer,
-          this.userData.firstMessageTime,
-          resizeWidth,
-        );
-
+        const decodedVideo = await (this.decoder ??= new WorkerImageDecoder()).decodeVideo(image, this.userData.firstMessageTime);
+        return decodedVideo?? emptyVideoFrame(this.userData.texture?.image, resizeWidth);
       } else if (IMAGE_FORMATS.has(image.format)) {
         return await decodeCompressedImageToBitmap(image, resizeWidth);
       } else {

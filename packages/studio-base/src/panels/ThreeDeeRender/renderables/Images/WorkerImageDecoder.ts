@@ -5,7 +5,8 @@
 import * as Comlink from "comlink";
 
 import { ComlinkWrap } from "@foxglove/den/worker";
-import { RawImage } from "@foxglove/schemas";
+import { RawImage, CompressedVideo } from "@foxglove/schemas";
+import { CompressedImageTypes } from "./ImageTypes";
 
 import type { RawImageOptions } from "./decodeImage";
 import { Image as RosImage } from "../../ros";
@@ -43,6 +44,14 @@ export class WorkerImageDecoder {
     options: Partial<RawImageOptions>,
   ): Promise<ImageData> {
     return await this.#remote.decode(image, options);
+  }
+
+  public async decodeVideo(
+    frame: CompressedImageTypes | CompressedVideo,
+    baseTime: bigint,
+  ): Promise<ImageData | undefined> {
+    const img = await this.#remote.decodeVideoFrame(frame, baseTime);
+    return "width" in img? img:undefined;
   }
 
   public terminate(): void {

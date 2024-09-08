@@ -15,6 +15,7 @@ import {
 import {
   CompressedImage,
   RawImage,
+  CompressedVideo,
   ImageAnnotations as FoxgloveImageAnnotations,
 } from "@foxglove/schemas";
 import { Immutable, MessageEvent } from "@foxglove/studio";
@@ -25,7 +26,6 @@ import {
 import { ImageModeConfig } from "@foxglove/studio-base/panels/ThreeDeeRender/IRenderer";
 import {
   AnyImage,
-  CompressedVideo,
   getTimestampFromImage,
 } from "@foxglove/studio-base/panels/ThreeDeeRender/renderables/Images/ImageTypes";
 import {

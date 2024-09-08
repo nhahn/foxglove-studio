@@ -9,10 +9,10 @@ import * as H264 from "./h264";
 
 // foxglove-depcheck-used: @types/dom-webcodecs
 
-const MAX_DECODE_WAIT_MS = 30;
+const MAX_DECODE_WAIT_MS = 15;
 
 export type VideoPlayerEventTypes = {
-  frame: (frame: VideoFrame) => void;
+  frame: (frame: ImageData) => void;
   debug: (message: string) => void;
   warn: (message: string) => void;
   error: (error: Error) => void;
@@ -40,6 +40,7 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
   #mutex = withTimeout(new Mutex(), MAX_DECODE_WAIT_MS);
   // Stores the last decoded frame as an ImageBitmap, should be set after decode()
   lastFrameData: ImageData | undefined;
+  lastSubmittedTimestamp = 0;
 
   /** Reports whether video decoding is supported in this browser session */
   public static IsSupported(): boolean {
@@ -78,10 +79,11 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
         const size = videoFrame.allocationSize(options);
         const buffer = new ArrayBuffer(size);
         videoFrame.copyTo(buffer, options).then(() => {
-          this.lastFrameData = new ImageData( new Uint8ClampedArray(buffer), videoFrame.displayWidth, videoFrame.displayHeight);
+          const img = new ImageData( new Uint8ClampedArray(buffer), videoFrame.displayWidth, videoFrame.displayHeight);
           videoFrame.close();
-          this.emit("frame", videoFrame);
-        })
+          this.lastFrameData = img;
+          this.emit("frame", img);
+        });
       },
       error: (error) => this.emit("error", error),
     };
@@ -179,7 +181,7 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
     data: Uint8Array,
     timestampMicros: number,
   ): Promise<ImageData | undefined> {
-    let frameHandler: () => void | undefined;
+    let frameHandler: (img: ImageData) => void | undefined;
     return await this.#mutex.runExclusive(async () => {
         // the decoder, as it is configured, expects 'annexB' style h264 data.
         const frame = this.getAnnexBFrame(data);
@@ -190,10 +192,11 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
         }
         const keyframe = this.isKeyFrame(data) ? "key" : "delta";
 
-        await new Promise<void>((resolve) => {
-          frameHandler = () => resolve();
+        const ret = await new Promise<ImageData | undefined>((resolve) => {
+          frameHandler = (img: ImageData) => {
+            resolve(img);
+          }
           this.once("frame", frameHandler);
-
           try {
             this.#decoder.decode(
               new EncodedVideoChunk({
@@ -211,11 +214,11 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
               }`,
             );
             this.emit("error", error);
-            resolve();        }
+            resolve(undefined);        
+          }
         });
-
-        return this.lastFrameData;
-      }).catch(e => {
+        return ret;
+      }).catch(() => {
         if (frameHandler) this.removeListener("frame", frameHandler);
         this.emit(
           "warn",

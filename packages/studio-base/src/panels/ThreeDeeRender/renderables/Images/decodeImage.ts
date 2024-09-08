@@ -21,9 +21,9 @@ import {
 } from "@foxglove/den/image";
 import { VideoPlayer } from "@foxglove/den/video";
 import { subtract as subtractTimes, toMicroSec, fromNanoSec } from "@foxglove/rostime";
-import { RawImage } from "@foxglove/schemas";
+import { CompressedVideo, RawImage} from "@foxglove/schemas";
 
-import { CompressedImageTypes, CompressedVideo } from "./ImageTypes";
+import { CompressedImageTypes } from "./ImageTypes";
 import { Image as RosImage } from "../../ros";
 import { ColorModeSettings, getColorConverter } from "../colorMode";
 
@@ -35,21 +35,20 @@ export async function decodeCompressedImageToBitmap(
   return await createImageBitmap(bitmapData, { resizeWidth });
 }
 
-export async function decodeCompressedVideoToBitmap(
-  frameMsg: CompressedVideo,
+export async function decodeCompressedVideo(
+  frameMsg: CompressedImageTypes | CompressedVideo,
   videoPlayer: VideoPlayer,
   firstMessageTime: bigint,
-  resizeWidth?: number,
-): Promise<ImageData> {
+): Promise<ImageData | undefined> {
   // Get the timestamp of this frame as microseconds relative to the first frame
-  
-  const timestampMicros = toMicroSec(subtractTimes(frameMsg.timestamp, fromNanoSec(firstMessageTime)));
+  const timestamp = ("header" in frameMsg)? frameMsg.header.stamp : frameMsg.timestamp;
+  const timestampMicros = toMicroSec(subtractTimes(timestamp, fromNanoSec(firstMessageTime)));
 
   const videoFrame = await videoPlayer.decode(
-    frameMsg.data,
+    frameMsg.data as Uint8Array,
     timestampMicros,
   );
-  return videoFrame ?? emptyVideoFrame(videoPlayer, resizeWidth);
+  return videoFrame;
 }
 
 export const IMAGE_DEFAULT_COLOR_MODE_SETTINGS: Required<
@@ -154,11 +153,11 @@ export function decodeRawImage(
 // Performance sensitive, skip the extra await when returning a blank image
 // eslint-disable-next-line @typescript-eslint/promise-function-async
 export function emptyVideoFrame(
-  videoPlayer?: VideoPlayer,
+  prevImage?: ImageData | ImageBitmap,
   resizeWidth?: number,
 ): ImageData {
   const width = resizeWidth ?? 32;
-  const size = videoPlayer?.lastFrameData?.width? {width: videoPlayer?.lastFrameData?.width, height: videoPlayer?.lastFrameData?.height} : { width, height: width };
+  const size = prevImage?.width? {width: prevImage?.width, height: prevImage?.height} : { width, height: width };
   const data = new ImageData(size.width, size.height);
   return data;
 }
