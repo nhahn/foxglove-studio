@@ -12,7 +12,7 @@ import * as H264 from "./h264";
 const MAX_DECODE_WAIT_MS = 15;
 
 export type VideoPlayerEventTypes = {
-  frame: (frame: ImageData) => void;
+  frame: (frame: ImageData, timestamp: number) => void;
   debug: (message: string) => void;
   warn: (message: string) => void;
   error: (error: Error) => void;
@@ -39,7 +39,6 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
   naluStreamInfo: H264.NaluStreamInfo | undefined;
   #mutex = withTimeout(new Mutex(), MAX_DECODE_WAIT_MS);
   // Stores the last decoded frame as an ImageBitmap, should be set after decode()
-  lastFrameData: ImageData | undefined;
   lastSubmittedTimestamp = 0;
 
   /** Reports whether video decoding is supported in this browser session */
@@ -78,11 +77,11 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
       output: (videoFrame: VideoFrame) => {
         const size = videoFrame.allocationSize(options);
         const buffer = new ArrayBuffer(size);
+        const timestamp = videoFrame.timestamp;
         videoFrame.copyTo(buffer, options).then(() => {
           const img = new ImageData( new Uint8ClampedArray(buffer), videoFrame.displayWidth, videoFrame.displayHeight);
           videoFrame.close();
-          this.lastFrameData = img;
-          this.emit("frame", img);
+          this.emit("frame", img, timestamp);
         });
       },
       error: (error) => this.emit("error", error),
@@ -115,43 +114,46 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
    * be called before decode() will return a VideoFrame.
    */
   public async init(frame: Uint8Array): Promise<boolean> {
-    const decoderConfig = this.getDecoderConfig(frame);    
-    if (!decoderConfig) {
-      return false;
-    }
-    // Optimize for latency means we do not have to call flush() in every decode() call
-    // See <https://github.com/w3c/webcodecs/issues/206>
-    decoderConfig.optimizeForLatency = true;
-    // Try with 'prefer-hardware' first
-    let modifiedConfig = { ...decoderConfig };
-    modifiedConfig.hardwareAcceleration = "prefer-hardware";
+    return await this.#mutex.runExclusive(async () => {
 
-    let support = await VideoDecoder.isConfigSupported(modifiedConfig);
-    if (support.supported !== true) {
-      log.warn(`VideoDecoder does not support configuration ${JSON.stringify(modifiedConfig)}. Trying without 'prefer-hardware'`);
-      // If 'prefer-hardware' is not supported, try without it
-      modifiedConfig = { ...decoderConfig };
-      support = await VideoDecoder.isConfigSupported(modifiedConfig);
-    }
+      const decoderConfig = this.getDecoderConfig(frame);    
+      if (!decoderConfig) {
+        return false;
+      }
+      // Optimize for latency means we do not have to call flush() in every decode() call
+      // See <https://github.com/w3c/webcodecs/issues/206>
+      decoderConfig.optimizeForLatency = true;
+      // Try with 'prefer-hardware' first
+      let modifiedConfig = { ...decoderConfig };
+      modifiedConfig.hardwareAcceleration = "prefer-hardware";
 
-    if (support.supported !== true) {
-      const err = new Error(
-        `VideoDecoder does not support configuration ${JSON.stringify(decoderConfig)}`,
-      );
-      this.emit("error", err);
-      return false;
-    }
+      let support = await VideoDecoder.isConfigSupported(modifiedConfig);
+      if (support.supported !== true) {
+        log.warn(`VideoDecoder does not support configuration ${JSON.stringify(modifiedConfig)}. Trying without 'prefer-hardware'`);
+        // If 'prefer-hardware' is not supported, try without it
+        modifiedConfig = { ...decoderConfig };
+        support = await VideoDecoder.isConfigSupported(modifiedConfig);
+      }
 
-    if (this.#decoder.state === "closed") {
-      this.emit("debug", "VideoDecoder is closed, creating a new one");
-      this.#decoder = new VideoDecoder(this.#decoderInit);
-    }
+      if (support.supported !== true) {
+        const err = new Error(
+          `VideoDecoder does not support configuration ${JSON.stringify(decoderConfig)}`,
+        );
+        this.emit("error", err);
+        return false;
+      }
 
-    this.emit("debug", `Configuring VideoDecoder with ${JSON.stringify(decoderConfig)}`);
-    this.#decoder.configure(decoderConfig);
-    this.#decoderConfig = decoderConfig;
+      if (this.#decoder.state === "closed") {
+        this.emit("debug", "VideoDecoder is closed, creating a new one");
+        this.#decoder = new VideoDecoder(this.#decoderInit);
+      }
 
-    return true;
+      this.emit("debug", `Configuring VideoDecoder with ${JSON.stringify(decoderConfig)}`);
+      this.#decoder.configure(decoderConfig);
+      this.#decoderConfig = decoderConfig;
+
+      return true;
+    });
   }
 
   /** Returns true if the VideoDecoder is open and configured, ready for decoding. */
@@ -181,52 +183,43 @@ export class VideoPlayer extends EventEmitter<VideoPlayerEventTypes> {
     data: Uint8Array,
     timestampMicros: number,
   ): Promise<ImageData | undefined> {
-    let frameHandler: (img: ImageData) => void | undefined;
-    return await this.#mutex.runExclusive(async () => {
-        // the decoder, as it is configured, expects 'annexB' style h264 data.
-        const frame = this.getAnnexBFrame(data);
-        if (!this.isInitialized()) {
-          if (!await this.init(frame)) {
-            return undefined;
-          }
-        }
-        const keyframe = this.isKeyFrame(data) ? "key" : "delta";
-
-        const ret = await new Promise<ImageData | undefined>((resolve) => {
-          frameHandler = (img: ImageData) => {
-            resolve(img);
-          }
-          this.once("frame", frameHandler);
-          try {
-            this.#decoder.decode(
-              new EncodedVideoChunk({
-                type: keyframe,
-                data: frame,
-                timestamp: timestampMicros,
-              }),
-            );
-          } catch (e) {
-            this.removeListener("frame", frameHandler);
-
-            const error = new Error(
-              `Failed to decode ${data.byteLength} byte chunk at time ${timestampMicros}: ${
-                (e as Error).message
-              }`,
-            );
-            this.emit("error", error);
-            resolve(undefined);        
-          }
-        });
-        return ret;
-      }).catch(() => {
-        if (frameHandler) this.removeListener("frame", frameHandler);
-        this.emit(
-          "warn",
-          `Timed out decoding ${data.byteLength} byte chunk at time ${timestampMicros}`,
-        );
-        this.#mutex.release();
+    // the decoder, as it is configured, expects 'annexB' style h264 data.
+    const frame = this.getAnnexBFrame(data);
+    if (!this.isInitialized()) {
+      if (!await this.init(frame)) {
         return undefined;
-      });
+      }
+    }
+    const keyframe = this.isKeyFrame(data) ? "key" : "delta";
+
+    const ret = await new Promise<ImageData | undefined>((resolve) => {
+      let frameHandler = (img: ImageData, timestamp: number) => {
+        if (timestamp < timestampMicros) return;
+        this.removeListener('frame', frameHandler);
+        resolve(img);
+      }
+      this.addListener("frame", frameHandler);
+      try {
+        this.#decoder.decode(
+          new EncodedVideoChunk({
+            type: keyframe,
+            data: frame,
+            timestamp: timestampMicros,
+          }),
+        );
+      } catch (e) {
+        this.removeListener("frame", frameHandler);
+
+        const error = new Error(
+          `Failed to decode ${data.byteLength} byte chunk at time ${timestampMicros}: ${
+            (e as Error).message
+          }`,
+        );
+        this.emit("error", error);
+        resolve(undefined);        
+      }
+    });
+    return ret;
   }
 
   /**
