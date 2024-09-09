@@ -9,6 +9,12 @@ services:
       context: ./
       args: 
         TAG: ${TAG:-latest}
+      tags:
+        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:latest
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
     # env_file:
     # - ./.env
     # - path: ../.env
