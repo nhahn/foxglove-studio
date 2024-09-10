@@ -4,22 +4,23 @@
 
 services:
   foxglove-studio:
-    image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:${TAG:-latest}
+    image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio${TAG:+:$TAG}
     build:
       context: ./
       args: 
         TAG: ${TAG:-latest}
-      tags:
-        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:latest
-      x-bake:
-        platforms:
-          - linux/amd64
-          - linux/arm64
-    # env_file:
-    # - ./.env
-    # - path: ../.env
-    #   required: false
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      cache_from:
+        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-amd64
+        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-arm64
+    env_file:
+    - path: ../.env
+      required: false
     # volumes:
     # - ./foxglove-layout.json:/foxglove/default-layout.json
+    profiles:
+      - studio
     ports:
     - "8080:8080"
