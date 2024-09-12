@@ -199,6 +199,7 @@ export class ImageRenderable extends Renderable<ImageUserData> {
 
         onDecoded?.();
         this.removeError(DECODE_IMAGE_ERR_KEY);
+        
         this.renderer.queueAnimationFrame();
       })
       .catch((err) => {
@@ -229,6 +230,10 @@ export class ImageRenderable extends Renderable<ImageUserData> {
     // call ondecoded to display the error image when calibration is None
     onDecoded?.();
     this.renderer.queueAnimationFrame();
+  }
+
+  public resetDecoder() {
+    this.decoder?.resetDecoder();
   }
 
   protected async decodeImage(

@@ -339,6 +339,7 @@ export class ImageMode
     if (!this.#fallbackCameraModelActive()) {
       this.#clearCameraModel();
     }
+    this.imageRenderable?.resetDecoder();
     this.#annotations.removeAllRenderables();
     this.messageHandler.clear();
     super.removeAllRenderables();

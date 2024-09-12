@@ -36,6 +36,10 @@ export class WorkerImageDecoder {
     this.#dispose = dispose;
   }
 
+  public resetDecoder() {
+    this.#remote.resetDecoder();
+  }
+
   /**
    * Copies `image` to the worker, and transfers the decoded result back to the main thread.
    */

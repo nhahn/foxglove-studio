@@ -24,6 +24,10 @@ function decode(image: RosImage | RawImage, options: Partial<RawImageOptions>): 
   return Comlink.transfer(result, [result.data.buffer]);
 }
 
+function resetDecoder() {
+  globalThis.videoPlayer?.resetForSeek();
+}
+
 async function decodeVideoFrame(image: CompressedVideo | CompressedImageTypes, baseTime: bigint): Promise<ImageData | {a: false}> {
   if (!globalThis.videoPlayer) {
     globalThis.videoPlayer = new VideoPlayer();
@@ -43,6 +47,6 @@ async function decodeVideoFrame(image: CompressedVideo | CompressedImageTypes, b
 }
 
 export const service = {
-  decode, decodeVideoFrame
+  decode, decodeVideoFrame, resetDecoder
 };
 Comlink.expose(service);
