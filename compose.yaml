@@ -1,7 +1,9 @@
 ######
 # Compose fragment file for the HoloROS driver
 ######
-
+include:
+  - "../networks.yaml"
+  
 services:
   foxglove-studio:
     image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio${TAG:+:$TAG}
@@ -15,9 +17,8 @@ services:
       cache_from:
         - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-amd64
         - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-arm64
-    env_file:
-    - path: ../.env
-      required: false
+    networks:
+      - ros2
     # volumes:
     # - ./foxglove-layout.json:/foxglove/default-layout.json
     profiles:
