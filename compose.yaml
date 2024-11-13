@@ -6,7 +6,7 @@ include:
   
 services:
   foxglove-studio:
-    image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio${TAG:-latest}
+    image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:${TAG:-latest}
     build:
       context: ./
       args:
