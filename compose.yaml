@@ -6,7 +6,7 @@ include:
   
 services:
   foxglove-studio:
-    image: registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:${TAG:-latest}
+    image: ${REG:-registry.gitlab.sitcore.net/xr-autonomy}/champ/foxglove-studio:${TAG:-latest}
     build:
       context: ./
       args:
@@ -15,8 +15,9 @@ services:
         - linux/amd64
         - linux/arm64
       cache_from:
-        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-amd64
-        - registry.gitlab.sitcore.net/xr-autonomy/champ/foxglove-studio:cache-arm64
+        - ${REG:-registry.gitlab.sitcore.net/xr-autonomy}/champ/foxglove-studio:buildcache
+      cache_to:
+        - type=registry,ref=${REG:-registry.gitlab.sitcore.net/xr-autonomy}/champ/foxglove-studio:buildcache,mode=max
     networks:
       - ros2
     # volumes:
